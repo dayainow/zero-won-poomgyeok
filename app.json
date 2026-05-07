@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "0원의품격",
+    "slug": "zero-won-poomgyeok",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F8FB"
+    },
+    "ios": {
+      "bundleIdentifier": "com.dobedub.zerowonpoomgyeok",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "가까운 무료 문화공간과 도서관을 거리순으로 보여주기 위해 현재 위치를 사용합니다."
+      }
+    },
+    "android": {
+      "package": "com.dobedub.zerowonpoomgyeok",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F7F8FB"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

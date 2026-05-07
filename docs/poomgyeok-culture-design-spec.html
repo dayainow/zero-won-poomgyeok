@@ -1,0 +1,2636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>0원의 품격 · v3.1 · UI/UX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:     #ECEAE5;
+    --bg-2:   #F4F2EE;
+    --card:   #FFFFFF;
+    --ink:    #0A0A0A;
+    --ink-2:  #1A1A1A;
+    --ink-3:  #3D3D3D;
+    --ink-4:  #6B6B6B;
+    --ink-5:  #9A9A9A;
+    --ink-6:  #C4C4C4;
+    --line:   #DCDAD4;
+    --line-2: #E8E6E0;
+
+    --lime:        #D4FF00;
+    --lime-d:      #B8E600;
+    --lime-soft:   #EFFF7A;
+
+    --violet:      #6E3FFF;
+    --violet-d:    #5A2EE0;
+    --violet-soft: #D7C5FF;
+
+    --tang:        #FF5C28;
+    --tang-soft:   #FFD4C2;
+
+    --pink:        #FF3D8B;
+    --pink-soft:   #FFC5DC;
+
+    --ice:         #00C2FF;
+    --ice-soft:    #B8EEFF;
+
+    /* Pretendard everywhere — different weights for different roles */
+    --sans:    'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --display: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:    'JetBrains Mono', ui-monospace, monospace;
+
+    /* Shadows — premium soft layered */
+    --shadow-sm: 0 1px 2px rgba(10,10,10,0.04), 0 2px 6px rgba(10,10,10,0.04);
+    --shadow-md: 0 1px 2px rgba(10,10,10,0.04), 0 8px 24px rgba(10,10,10,0.08);
+    --shadow-lg: 0 2px 4px rgba(10,10,10,0.06), 0 20px 48px rgba(10,10,10,0.12);
+    --shadow-card: 0 1px 1px rgba(10,10,10,0.04), 0 4px 16px rgba(10,10,10,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "ss02";
+    font-weight: 500;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; }
+
+  /* SVG noise filter (used to add film grain) */
+  .grain-filter {
+    position: absolute; width: 0; height: 0;
+    overflow: hidden;
+  }
+
+  /* ── Header ───────────────────────────────── */
+  .doc-head {
+    margin-bottom: 32px;
+    padding: 36px;
+    background: var(--ink);
+    color: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+  }
+  .doc-head::before {
+    content: ''; position: absolute;
+    top: -160px; right: -120px;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, var(--lime) 0%, transparent 60%);
+    opacity: 0.55;
+    filter: blur(40px);
+  }
+  .doc-head::after {
+    content: ''; position: absolute;
+    bottom: -120px; left: 24%;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, var(--violet) 0%, transparent 60%);
+    opacity: 0.45;
+    filter: blur(60px);
+  }
+  .doc-head > * { position: relative; z-index: 1; }
+  .museum-tag {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.18em;
+    color: var(--lime); text-transform: uppercase;
+    margin-bottom: 28px;
+    font-weight: 500;
+  }
+  .museum-tag .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--lime);
+    box-shadow: 0 0 12px var(--lime);
+    animation: livePulse 1.5s infinite;
+  }
+  @keyframes livePulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .museum-tag .yr { margin-left: auto; color: rgba(255,255,255,0.5); letter-spacing: 0.15em; }
+
+  h1.title {
+    font-family: var(--display);
+    font-size: 92px; font-weight: 900;
+    letter-spacing: -0.045em; line-height: 0.92;
+    color: var(--bg);
+    margin-bottom: 18px;
+  }
+  h1.title .em {
+    background: linear-gradient(90deg, var(--lime) 0%, var(--ice) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  h1.title .gloss {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 14px; font-weight: 400;
+    color: var(--ink-6); letter-spacing: 0.04em;
+    transform: translateY(-30px);
+    margin-left: 6px;
+  }
+  .sub {
+    color: rgba(255,255,255,0.72);
+    font-size: 16px; max-width: 640px;
+    line-height: 1.65;
+    font-weight: 500;
+  }
+  .sub b { color: var(--lime); font-weight: 700; }
+  .sub .vio { color: var(--violet-soft); font-weight: 700; }
+
+  .head-stickers {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 28px;
+  }
+  .sticker {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 12px; font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  .sticker.lime { background: var(--lime); color: var(--ink); }
+  .sticker.violet { background: var(--violet); color: var(--bg); }
+  .sticker.pink { background: var(--pink); color: var(--bg); }
+  .sticker.outline {
+    background: transparent; color: var(--bg);
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  /* ── Section ─────────────────────────────── */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    padding: 40px 40px 36px;
+    margin-top: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .section.dark {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .section.dark .lead { color: var(--ink-6); }
+  .section.dark h2 { color: var(--bg); }
+
+  .section-head { margin-bottom: 28px; }
+  .section-no {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.16em;
+    color: var(--ink-3); text-transform: uppercase;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .section-no::before {
+    content: ''; width: 24px; height: 2px; background: var(--lime);
+  }
+  .section.dark .section-no { color: var(--ink-6); }
+
+  .section h2 {
+    font-family: var(--display);
+    font-size: 46px; font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.0; color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .section h2 .it {
+    background: linear-gradient(90deg, var(--violet), var(--pink));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .section h2 .lime-glow {
+    display: inline-block;
+    background: var(--lime);
+    color: var(--ink);
+    padding: 0 10px; border-radius: 6px;
+    transform: rotate(-1.5deg);
+  }
+  .section .lead {
+    color: var(--ink-3); font-size: 16px;
+    line-height: 1.6; max-width: 720px;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  h3.sub-h {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    margin: 32px 0 16px; color: var(--ink-3);
+    display: flex; align-items: center; gap: 10px;
+  }
+  h3.sub-h::before {
+    content: ''; width: 18px; height: 2px;
+    background: var(--ink);
+  }
+  .section.dark h3.sub-h { color: var(--ink-6); }
+  .section.dark h3.sub-h::before { background: var(--lime); }
+
+  /* ── Bento principles ──────────────────────── */
+  .principles {
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px;
+  }
+  .principle {
+    padding: 26px;
+    background: var(--bg-2);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .principle.lime { background: var(--lime); }
+  .principle.violet { background: var(--violet); color: var(--bg); }
+  .principle.pink { background: var(--pink-soft); }
+  .principle.ink { background: var(--ink); color: var(--bg); }
+  .principle.tang { background: var(--tang-soft); }
+  .principle.big {
+    grid-row: span 2;
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .principle .p-num {
+    font-family: var(--mono);
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px; display: block;
+    opacity: 0.55;
+  }
+  .principle .p-title {
+    font-family: var(--display);
+    font-weight: 800; font-size: 22px;
+    margin-bottom: 8px;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+  .principle.big .p-title { font-size: 34px; line-height: 1.05; }
+  .principle .p-body {
+    font-size: 13.5px;
+    line-height: 1.6;
+    opacity: 0.85;
+    font-weight: 500;
+  }
+
+  /* ── Color palette ─────────── */
+  .palette-label {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    color: var(--ink-3); letter-spacing: 0.16em;
+    text-transform: uppercase; margin: 24px 0 12px;
+  }
+  .swatch-row {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  }
+  .swatch {
+    border-radius: 12px; overflow: hidden;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+  }
+  .swatch .chip { height: 100px; position: relative; }
+  .swatch .chip::after {
+    content: ''; position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.18));
+  }
+  .swatch .meta { padding: 12px 14px; }
+  .swatch .meta .name {
+    font-family: var(--display);
+    font-weight: 700; font-size: 14px;
+    color: var(--ink); margin-bottom: 2px;
+    letter-spacing: -0.015em;
+  }
+  .swatch .meta .hex {
+    font-family: var(--mono);
+    color: var(--ink-4); font-size: 10.5px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Type table ──────────────────────────── */
+  .type-table {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .type-row {
+    display: grid; grid-template-columns: 1.6fr 0.7fr 0.6fr 0.9fr;
+    padding: 18px 22px;
+    border-top: 1px solid var(--line);
+    align-items: center;
+    background: var(--card);
+  }
+  .type-row:first-child {
+    border-top: 0; background: var(--ink); color: var(--bg);
+  }
+  .type-row:first-child .type-head { color: var(--bg); opacity: 0.7; }
+  .type-head {
+    font-family: var(--mono);
+    font-size: 10px; color: var(--ink-4); font-weight: 500;
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .type-name {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--violet); letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+  .type-val {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--ink-4);
+  }
+  .type-use { font-size: 13px; color: var(--ink-3); font-weight: 500; }
+
+  /* ── Spacing ─────────────────────────────── */
+  .scale-row { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; margin-top: 10px; }
+  .scale-item { text-align: center; }
+  .scale-item .box {
+    background: var(--lime); margin: 0 auto 8px;
+    border-radius: 3px;
+  }
+  .scale-item .label {
+    font-family: var(--mono);
+    font-size: 10.5px; color: var(--ink-4);
+  }
+  .radius-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .radius-box {
+    width: 84px; height: 84px;
+    background: var(--ink); color: var(--lime);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 11px;
+    font-weight: 500; text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Mockups ─────────────────────────────── */
+  .mockups {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    margin-top: 12px;
+  }
+  .phone {
+    background: transparent;
+    padding: 0;
+  }
+  .phone-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 8px 16px;
+  }
+  .phone-head .label {
+    font-family: var(--mono);
+    font-size: 10px; color: rgba(255,255,255,0.7);
+    font-weight: 500;
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .phone-head .pin {
+    width: 7px; height: 7px;
+    background: var(--lime); border-radius: 50%;
+    box-shadow: 0 0 12px var(--lime);
+  }
+
+  .screen {
+    width: 100%;
+    aspect-ratio: 375 / 812;
+    background: var(--bg);
+    overflow: hidden;
+    position: relative;
+    color: var(--ink);
+    display: flex; flex-direction: column;
+    border-radius: 38px;
+    box-shadow:
+      0 0 0 8px var(--ink),
+      0 0 0 9px #2A2A2A,
+      var(--shadow-lg);
+  }
+  /* iPhone notch */
+  .screen::before {
+    content: ''; position: absolute;
+    top: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 28px;
+    background: var(--ink);
+    border-radius: 0 0 18px 18px;
+    z-index: 5;
+  }
+  .screen.detail-screen::before { background: #0A0A0A; }
+
+  .status-bar {
+    height: 44px; display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 26px 0;
+    font-family: var(--display);
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    background: transparent;
+    z-index: 6;
+    position: relative;
+    letter-spacing: -0.02em;
+  }
+  .status-bar .right { display: flex; gap: 5px; align-items: center; }
+  .status-bar svg { width: 13px; height: 13px; }
+
+  /* Hero */
+  .hero {
+    padding: 12px 16px 8px;
+  }
+  .hero-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .app-mark {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--display);
+    font-weight: 800; font-size: 16px;
+    letter-spacing: -0.025em; color: var(--ink);
+  }
+  .app-mark .bk {
+    width: 26px; height: 26px;
+    background: var(--ink); display: grid; place-items: center;
+    color: var(--lime);
+    font-weight: 800; font-size: 13px;
+    border-radius: 7px;
+  }
+  .app-mark .nm-it { color: var(--violet); }
+
+  .icon-btn {
+    width: 32px; height: 32px;
+    background: var(--ink); border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--bg);
+  }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .icon-btn.ghost {
+    background: var(--bg-2);
+    color: var(--ink);
+  }
+
+  /* Stories rail */
+  .stories-rail {
+    display: flex; gap: 12px;
+    overflow-x: auto; scrollbar-width: none;
+    padding: 10px 16px 14px;
+  }
+  .stories-rail::-webkit-scrollbar { display: none; }
+  .story {
+    flex-shrink: 0; width: 60px; text-align: center;
+  }
+  .story .ring {
+    width: 60px; height: 60px;
+    padding: 2.5px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--lime), var(--violet), var(--pink), var(--lime));
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .story.viewed .ring { background: var(--ink-6); }
+  .story.live .ring {
+    background: conic-gradient(from 0deg, var(--pink), var(--tang), var(--lime), var(--pink));
+    animation: spinRing 2s linear infinite;
+  }
+  @keyframes spinRing { to { transform: rotate(360deg); } }
+  .story .inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--bg);
+    padding: 2.5px;
+  }
+  .story .pic {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .story .pic svg { width: 100%; height: 100%; display: block; }
+  .story .name {
+    font-family: var(--sans);
+    font-size: 9.5px; color: var(--ink); font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .story.live .name { color: var(--pink); font-weight: 700; }
+
+  /* Big sticker headline */
+  .big-headline {
+    padding: 6px 16px 14px;
+  }
+  .big-headline .kicker {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px;
+    background: var(--lime); color: var(--ink);
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: -0.01em;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .big-headline .kicker .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ink);
+    animation: livePulse 1.4s infinite;
+  }
+  .big-headline h1 {
+    font-family: var(--display);
+    font-size: 30px; font-weight: 800;
+    letter-spacing: -0.045em; line-height: 0.95;
+    color: var(--ink);
+  }
+  .big-headline h1 .vio {
+    background: linear-gradient(90deg, var(--violet), var(--pink));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* digest stickers */
+  .digest {
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 6px; padding: 0 16px 14px;
+  }
+  .dg {
+    padding: 13px 14px; border-radius: 14px;
+    background: var(--ink-2); color: var(--bg);
+    position: relative; overflow: hidden;
+  }
+  .dg.lime { background: var(--lime); color: var(--ink); }
+  .dg.violet { background: var(--violet); color: var(--bg); }
+  .dg.tang { background: var(--tang); color: var(--bg); }
+  .dg .vl {
+    font-family: var(--display);
+    font-size: 28px; font-weight: 800;
+    letter-spacing: -0.045em; line-height: 1;
+  }
+  .dg .lb {
+    font-family: var(--sans);
+    font-size: 10.5px; font-weight: 700;
+    margin-top: 4px;
+    opacity: 0.85;
+    letter-spacing: -0.01em;
+  }
+
+  /* Filter chip rail */
+  .chip-rail {
+    display: flex; gap: 6px; overflow-x: auto;
+    padding: 4px 16px 10px; scrollbar-width: none;
+  }
+  .chip-rail::-webkit-scrollbar { display: none; }
+  .chip {
+    padding: 7px 13px;
+    background: var(--card); border: 1.5px solid var(--ink);
+    font-family: var(--sans);
+    font-size: 11.5px; font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .chip.active {
+    background: var(--ink); color: var(--bg);
+  }
+  .chip.lime {
+    background: var(--lime); color: var(--ink);
+    border-color: var(--ink);
+  }
+  .chip .ct {
+    padding: 1px 7px; background: rgba(0,0,0,0.1);
+    border-radius: 999px;
+    font-size: 10px;
+  }
+  .chip.active .ct { background: rgba(255,255,255,0.18); }
+
+  /* Big card */
+  .big-card {
+    margin: 0 16px 12px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--ink);
+    color: var(--bg);
+    position: relative;
+    box-shadow: var(--shadow-card);
+  }
+  .big-card .img {
+    width: 100%; aspect-ratio: 4/2.5;
+    position: relative;
+    overflow: hidden;
+  }
+  .big-card .img svg { width: 100%; height: 100%; display: block; }
+  .big-card .img-tags {
+    position: absolute; top: 12px; left: 12px;
+    display: flex; gap: 5px;
+  }
+  .big-card .img-tag {
+    padding: 5px 11px; border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .big-card .img-tag.lime {
+    background: var(--lime); color: var(--ink);
+  }
+  .big-card .img-tag.dark {
+    background: rgba(0,0,0,0.55); color: var(--bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .big-card .img-tag.tang {
+    background: var(--tang); color: var(--bg);
+  }
+  .big-card .img-fav {
+    position: absolute; top: 12px; right: 12px;
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.45); backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--pink);
+  }
+  .big-card .body {
+    padding: 14px 16px 14px;
+  }
+  .big-card .b-title {
+    font-family: var(--display);
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -0.03em; line-height: 1.15;
+    margin-bottom: 5px;
+  }
+  .big-card .b-meta {
+    font-family: var(--sans);
+    font-size: 11.5px; color: rgba(255,255,255,0.65);
+    font-weight: 500;
+    margin-bottom: 12px;
+    display: flex; gap: 6px;
+    letter-spacing: -0.01em;
+  }
+  .big-card .b-meta .dot { color: rgba(255,255,255,0.3); }
+  .big-card .b-stats {
+    display: flex; gap: 14px;
+    font-family: var(--sans);
+    font-size: 12px; font-weight: 700;
+    color: var(--bg);
+    align-items: center;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 12px;
+    letter-spacing: -0.01em;
+  }
+  .big-card .b-stats .stat {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .big-card .b-stats .stat svg { width: 13px; height: 13px; }
+  .big-card .b-stats .like { color: var(--pink); }
+  .big-card .b-stats .save { color: var(--lime); }
+  .big-card .b-stats .cta {
+    margin-left: auto; padding: 7px 14px;
+    background: var(--lime); color: var(--ink);
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  /* Mini cards */
+  .mini-row {
+    padding: 4px 16px 12px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .mini-card {
+    border-radius: 16px;
+    background: var(--card);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .mini-card .m-img {
+    width: 100%; aspect-ratio: 1/1;
+    position: relative;
+  }
+  .mini-card .m-img svg { width: 100%; height: 100%; display: block; }
+  .mini-card .m-pill {
+    position: absolute; top: 8px; left: 8px;
+    padding: 4px 9px; border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 10px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .mini-card .m-pill.lime { background: var(--lime); color: var(--ink); }
+  .mini-card .m-pill.violet { background: var(--violet); color: var(--bg); }
+  .mini-card .m-body {
+    padding: 10px 12px 12px;
+  }
+  .mini-card .m-title {
+    font-family: var(--display);
+    font-size: 13px; font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .mini-card .m-meta {
+    font-family: var(--sans);
+    font-size: 10.5px; color: var(--ink-4);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    display: flex; gap: 5px;
+  }
+  .mini-card .m-meta .dot { color: var(--ink-6); }
+
+  /* Tabbar */
+  .tabbar {
+    margin-top: auto;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 10px 14px 26px;
+    display: flex; gap: 4px;
+    align-items: center;
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-family: var(--sans);
+    font-size: 9.5px; color: rgba(255,255,255,0.5); font-weight: 700;
+    letter-spacing: -0.01em;
+    padding: 6px 0;
+  }
+  .tab svg { width: 18px; height: 18px; }
+  .tab.active {
+    color: var(--lime);
+  }
+  .tab.add {
+    flex: 0 0 auto;
+    background: var(--lime); color: var(--ink);
+    width: 48px; height: 48px;
+    border-radius: 16px;
+    display: grid; place-items: center;
+    transform: translateY(-12px);
+    box-shadow: 0 8px 20px rgba(212,255,0,0.4);
+  }
+  .tab.add svg { width: 22px; height: 22px; }
+
+  /* Detail screen */
+  .detail-screen {
+    background: #0A0A0A !important;
+    color: var(--bg);
+  }
+
+  /* IG-style grid */
+  .ig-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  .ig-cell {
+    aspect-ratio: 1/1; position: relative;
+    overflow: hidden;
+  }
+  .ig-cell svg { width: 100%; height: 100%; display: block; }
+  .ig-cell .price-tag {
+    position: absolute; top: 8px; left: 8px;
+    padding: 3px 9px; border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 9.5px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .ig-cell .price-tag.lime { background: var(--lime); color: var(--ink); }
+  .ig-cell .price-tag.violet { background: var(--violet); color: var(--bg); }
+  .ig-cell .price-tag.tang { background: var(--tang); color: var(--bg); }
+  .ig-cell .heart-ct {
+    position: absolute; bottom: 8px; right: 8px;
+    font-family: var(--sans);
+    font-size: 10.5px; color: #fff; font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    letter-spacing: -0.01em;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .ig-cell .heart-ct svg { width: 11px; height: 11px; }
+
+  /* Catalog */
+  .cat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .cat-card {
+    padding: 24px; border-radius: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    align-items: flex-start;
+  }
+  .cat-card .info .tt {
+    font-family: var(--display);
+    font-weight: 800; font-size: 19px;
+    color: var(--ink); margin-bottom: 4px;
+    letter-spacing: -0.025em;
+  }
+  .cat-card .info .dd {
+    font-size: 13.5px; color: var(--ink-3);
+    line-height: 1.55;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .cat-card .info .code {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--violet);
+    letter-spacing: 0.04em;
+  }
+
+  .pp-big {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 12px; font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .pp-big.lime { background: var(--lime); color: var(--ink); }
+  .pp-big.violet { background: var(--violet); color: var(--bg); }
+  .pp-big.tang { background: var(--tang); color: var(--bg); }
+  .pp-big.ink { background: var(--ink); color: var(--bg); }
+  .pp-big .blip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
+  .pp-big.lime .blip { animation: livePulse 1.4s infinite; }
+
+  /* A11y */
+  .a11y-list {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .a11y-item {
+    padding: 24px;
+    background: var(--bg-2);
+    border-radius: 14px;
+    border: 1px solid var(--line-2);
+  }
+  .a11y-item .ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: var(--ink); color: var(--lime);
+    border-radius: 10px;
+    font-family: var(--display);
+    font-weight: 800; font-size: 15px;
+    margin-bottom: 14px;
+  }
+  .a11y-item .tt {
+    font-family: var(--display);
+    font-weight: 800; font-size: 19px;
+    color: var(--ink);
+    letter-spacing: -0.025em;
+    margin-bottom: 6px;
+  }
+  .a11y-item .dd {
+    color: var(--ink-3); font-size: 14px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+
+  /* Code */
+  pre.code {
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 12px;
+    padding: 24px 26px;
+    font-family: var(--mono);
+    font-size: 12.5px; line-height: 1.65;
+    overflow-x: auto;
+    margin-top: 12px;
+    border-left: 3px solid var(--lime);
+  }
+  .code .k { color: var(--violet-soft); }
+  .code .s { color: var(--lime); }
+  .code .n { color: var(--tang); }
+  .code .c { color: var(--ink-5); }
+  .code .p { color: var(--ice-soft); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+
+  /* Journey */
+  .journey {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+  }
+  .journey-step {
+    padding: 24px 20px;
+    border-radius: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    position: relative;
+  }
+  .journey-step:nth-child(2) { background: var(--lime); border-color: var(--lime); }
+  .journey-step:nth-child(4) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .journey-step .step-num {
+    font-family: var(--display);
+    font-size: 36px; font-weight: 900;
+    line-height: 1; letter-spacing: -0.06em;
+    margin-bottom: 14px;
+    color: var(--violet);
+  }
+  .journey-step:nth-child(2) .step-num { color: var(--ink); }
+  .journey-step:nth-child(4) .step-num { color: var(--lime); }
+  .journey-step .step-title {
+    font-family: var(--display);
+    font-weight: 800; font-size: 17px;
+    margin-bottom: 6px;
+    letter-spacing: -0.025em;
+  }
+  .journey-step .step-body {
+    font-size: 13px; line-height: 1.55;
+    opacity: 0.85;
+    font-weight: 500;
+  }
+
+  /* Screen flow */
+  .screen-flow {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  .sf-item {
+    padding: 24px 22px;
+    border-radius: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+  }
+  .sf-item .sf-emoji {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    background: var(--ink); color: var(--lime);
+    border-radius: 12px;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .sf-item .sf-name {
+    font-family: var(--display);
+    font-weight: 800; font-size: 17px;
+    margin-bottom: 6px; color: var(--ink);
+    letter-spacing: -0.025em;
+  }
+  .sf-item .sf-name .gg {
+    font-family: var(--mono);
+    font-size: 9.5px; color: var(--violet);
+    letter-spacing: 0.06em;
+    display: block; margin-top: 3px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .sf-item .sf-desc {
+    color: var(--ink-3); font-size: 13px;
+    line-height: 1.55;
+    font-weight: 500;
+  }
+
+  /* Editorial list */
+  .editorial-list { list-style: none; padding: 0; margin: 0; }
+  .editorial-list li {
+    font-size: 14.5px; color: var(--ink-2);
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-2);
+    display: grid; grid-template-columns: 24px 1fr; gap: 8px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+  .editorial-list li::before {
+    content: '→';
+    color: var(--violet);
+    font-weight: 800;
+  }
+  .editorial-list li:last-child { border-bottom: 0; }
+  .editorial-list .it { color: var(--violet); font-weight: 700; }
+
+  /* Pull quote */
+  .pull-quote {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 48px; line-height: 1.0;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+    text-align: left;
+    padding: 36px 0;
+    margin: 12px 0;
+  }
+  .pull-quote .em {
+    background: var(--lime);
+    padding: 0 10px;
+    transform: rotate(-1.5deg);
+    display: inline-block;
+  }
+  .pull-quote .vio {
+    background: linear-gradient(90deg, var(--violet), var(--pink));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .pull-quote .cite {
+    display: block; font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    color: var(--ink-4); letter-spacing: 0.16em;
+    text-transform: uppercase; margin-top: 22px;
+  }
+
+  /* API list */
+  .api-list { display: grid; gap: 10px; }
+  .api-row {
+    display: grid; grid-template-columns: 64px 1fr auto;
+    gap: 22px; padding: 26px 28px;
+    border-radius: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    align-items: flex-start;
+  }
+  .api-row.featured {
+    background: var(--ink); color: var(--bg);
+    border-color: var(--ink);
+  }
+  .api-row .api-no {
+    font-family: var(--display);
+    font-size: 36px; font-weight: 900;
+    color: var(--violet);
+    line-height: 0.85;
+    letter-spacing: -0.06em;
+  }
+  .api-row.featured .api-no { color: var(--lime); }
+  .api-row .api-name {
+    font-family: var(--display);
+    font-weight: 800; font-size: 21px;
+    margin-bottom: 4px;
+    letter-spacing: -0.03em;
+  }
+  .api-row .api-name .it {
+    background: linear-gradient(90deg, var(--violet), var(--pink));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .api-row.featured .api-name .it {
+    background: linear-gradient(90deg, var(--lime), var(--ice));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .api-row .api-host {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-4); letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .api-row.featured .api-host { color: var(--ink-6); }
+  .api-row .api-desc {
+    font-size: 13.5px; line-height: 1.6;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .api-row.featured .api-desc { color: rgba(255,255,255,0.75); }
+  .api-row .api-tags {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .api-row .api-tags .tag {
+    padding: 4px 11px; border-radius: 999px;
+    font-family: var(--sans); font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .api-row .api-tags .tag.lime { background: var(--lime); color: var(--ink); }
+  .api-row .api-tags .tag.violet { background: var(--violet); color: var(--bg); }
+  .api-row .api-tags .tag.outline {
+    background: transparent;
+    color: var(--ink-3);
+    border: 1px solid var(--line);
+  }
+  .api-row.featured .api-tags .tag.outline {
+    color: var(--ink-6); border-color: rgba(255,255,255,0.2);
+  }
+  .api-row .api-side {
+    text-align: right;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-4); letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .api-row .api-side .free-mark {
+    display: block;
+    font-family: var(--display);
+    font-size: 24px; font-weight: 900;
+    color: var(--violet);
+    text-transform: none; letter-spacing: -0.04em;
+    margin-bottom: 4px;
+  }
+  .api-row.featured .api-side .free-mark { color: var(--lime); }
+  .api-row.featured .api-side { color: var(--ink-6); }
+
+  /* Footer */
+  .footer-mark {
+    text-align: center; padding: 50px 0 20px;
+    font-family: var(--mono);
+    font-size: 11px; color: var(--ink-4);
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .footer-mark .d { color: var(--lime); font-weight: 700; }
+
+  @media (max-width: 980px) {
+    h1.title { font-size: 56px; }
+    .section { padding: 28px 22px; }
+    .section h2 { font-size: 32px; }
+    .pull-quote { font-size: 32px; }
+    .mockups { grid-template-columns: 1fr; }
+    .principles { grid-template-columns: 1fr; }
+    .principle.big { grid-row: auto; }
+    .swatch-row { grid-template-columns: repeat(3, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .cat-grid { grid-template-columns: 1fr; }
+    .a11y-list { grid-template-columns: 1fr; }
+    .journey { grid-template-columns: 1fr; }
+    .screen-flow { grid-template-columns: repeat(2, 1fr); }
+    .api-row { grid-template-columns: 50px 1fr; }
+    .api-row .api-side { grid-column: 1 / -1; text-align: left; margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hidden SVG defs for noise filter & reusable graphics -->
+<svg class="grain-filter" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="grain"><feTurbulence baseFrequency="0.85" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0"/></filter>
+    <filter id="grainSoft"><feTurbulence baseFrequency="1.2" numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/></filter>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <!-- ─────────── Header ─────────── -->
+  <header class="doc-head">
+    <div class="museum-tag">
+      <span class="live-dot"></span>
+      v3.1 · live now
+      <span class="yr">UI/UX · 2026</span>
+    </div>
+    <h1 class="title">0원의<br/>품격<span class="em">.</span><span class="gloss">/ POOMGYEOK</span></h1>
+    <p class="sub">
+      <b>0원으로 즐기는 진짜 문화생활.</b> 무료 전시·공연·팝업·도서관 낭독회까지,
+      <span class="vio">내 주변 5km</span>에서 지금 갈 수 있는 것만 모아보는 앱. 가성비 말고 — 안목.
+    </p>
+    <div class="head-stickers">
+      <span class="sticker lime">● FREE 0원</span>
+      <span class="sticker violet">위치 기반</span>
+      <span class="sticker pink">D-day 알림</span>
+      <span class="sticker outline">공공 API · 무료</span>
+    </div>
+  </header>
+
+  <!-- ─────────── 1. About ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 01</div>
+      <h2>About <span class="it">the App</span></h2>
+      <p class="lead">"비싸야 좋은 것"이라는 통념을 가뿐히 넘기는 앱. 0원이어도 안목은 안 깎인다.</p>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3 class="sub-h">왜 만들어요</h3>
+        <div class="a11y-list" style="grid-template-columns:1fr;">
+          <div class="a11y-item">
+            <div class="ico">01</div>
+            <div class="tt">무료 ≠ 저질</div>
+            <div class="dd">국립미술관 무료관람일, 도서관 시낭독회, 공원 콘서트 — 모르면 못 가는 것뿐.</div>
+          </div>
+          <div class="a11y-item">
+            <div class="ico">02</div>
+            <div class="tt">위치에서 시작</div>
+            <div class="dd">"지금 당장 갈 수 있는 곳" 부터. 서울 마포구라면 마포·홍대·연남부터.</div>
+          </div>
+          <div class="a11y-item">
+            <div class="ico">03</div>
+            <div class="tt">선착순은 알람으로</div>
+            <div class="dd">D-day · 잔여석 · 마감 임박을 조용히 그러나 정확히 알린다.</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 class="sub-h">누가 써요</h3>
+        <div class="a11y-list" style="grid-template-columns:1fr;">
+          <div class="a11y-item">
+            <div class="ico">α</div>
+            <div class="tt">대학생 · 취준생</div>
+            <div class="dd">시간은 있고 예산은 없음. 하지만 안목은 살아있음.</div>
+          </div>
+          <div class="a11y-item">
+            <div class="ico">β</div>
+            <div class="tt">출퇴근 직장인</div>
+            <div class="dd">점심 한 시간, 퇴근 후 두 시간. 그 사이에 들를 만한 곳.</div>
+          </div>
+          <div class="a11y-item">
+            <div class="ico">γ</div>
+            <div class="tt">주말 가족</div>
+            <div class="dd">아이와 함께할 무료 체험·공원 음악회·도서관 행사.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      <span class="em">Free.</span> 그리고<br/>
+      <span class="vio">품격있게.</span>
+      <span class="cite">— editorial / 2026</span>
+    </div>
+  </section>
+
+  <!-- ─────────── 2. Loop ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 02</div>
+      <h2>The <span class="it">Loop</span></h2>
+      <p class="lead">발견 → 저장 → 참여 → 인증 → 재방문. 인스타·틱톡 루프와 같은 구조.</p>
+    </div>
+
+    <div class="journey">
+      <div class="journey-step">
+        <div class="step-num">01</div>
+        <div class="step-title">발견</div>
+        <div class="step-body">For You 피드에서 무심코 스크롤 중 발견.</div>
+      </div>
+      <div class="journey-step">
+        <div class="step-num">02</div>
+        <div class="step-title">저장</div>
+        <div class="step-body">하트 또는 북마크. 알림 자동 설정.</div>
+      </div>
+      <div class="journey-step">
+        <div class="step-num">03</div>
+        <div class="step-title">알림</div>
+        <div class="step-body">D-1, 잔여석 5석. 푸시 또는 위젯.</div>
+      </div>
+      <div class="journey-step">
+        <div class="step-num">04</div>
+        <div class="step-title">참여</div>
+        <div class="step-body">길찾기 + QR 체크인.</div>
+      </div>
+      <div class="journey-step">
+        <div class="step-num">05</div>
+        <div class="step-title">인증</div>
+        <div class="step-body">사진 + 한 줄 후기 → 피드 공유.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 3. IA ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 03</div>
+      <h2>Tabs <span class="it">&amp; Screens</span></h2>
+      <p class="lead">하단 5탭 + 디테일 화면들. 가운데 +는 즉석 인증/후기 작성.</p>
+    </div>
+
+    <h3 class="sub-h">Bottom Tabs · 5</h3>
+    <div class="screen-flow">
+      <div class="sf-item">
+        <div class="sf-emoji">⚡</div>
+        <div class="sf-name">피드 <span class="gg">FOR YOU</span></div>
+        <div class="sf-desc">For You 알고리즘 피드. 큰 사진, 스토리, 그리드.</div>
+      </div>
+      <div class="sf-item">
+        <div class="sf-emoji">📍</div>
+        <div class="sf-name">지도 <span class="gg">ATLAS</span></div>
+        <div class="sf-desc">주변 5km 핀. 무료/저렴 색상으로 즉시 구분.</div>
+      </div>
+      <div class="sf-item">
+        <div class="sf-emoji">＋</div>
+        <div class="sf-name">인증 <span class="gg">POST</span></div>
+        <div class="sf-desc">사진 + 한 줄 후기. "0원으로 다녀왔다" 자동 포맷.</div>
+      </div>
+      <div class="sf-item">
+        <div class="sf-emoji">🔖</div>
+        <div class="sf-name">저장 <span class="gg">SAVED</span></div>
+        <div class="sf-desc">찜한 행사. D-day 정렬, 알림 자동.</div>
+      </div>
+    </div>
+
+    <h3 class="sub-h">Detail Screens</h3>
+    <div class="screen-flow">
+      <div class="sf-item">
+        <div class="sf-emoji">🎨</div>
+        <div class="sf-name">행사 디테일 <span class="gg">REELS</span></div>
+        <div class="sf-desc">풀블리드 사진, 사이드 액션. 댓글 미리보기.</div>
+      </div>
+      <div class="sf-item">
+        <div class="sf-emoji">🔍</div>
+        <div class="sf-name">검색 <span class="gg">SEARCH</span></div>
+        <div class="sf-desc">키워드 + 태그 + 가격대 + 카테고리 필터.</div>
+      </div>
+      <div class="sf-item">
+        <div class="sf-emoji">✍️</div>
+        <div class="sf-name">후기 작성 <span class="gg">REVIEW</span></div>
+        <div class="sf-desc">별점, 사진 업로드, 한 줄. 공유 카드 자동 생성.</div>
+      </div>
+      <div class="sf-item">
+        <div class="sf-emoji">👤</div>
+        <div class="sf-name">마이 <span class="gg">ME</span></div>
+        <div class="sf-desc">활동 내역, 다녀온 곳, 알림 설정, 예산 디폴트.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 4. Manifesto ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 04</div>
+      <h2>The <span class="it">Manifesto</span></h2>
+      <p class="lead">한 마디로: 종이 가격표를 빼고, 진짜 가치를 본다.</p>
+    </div>
+
+    <div class="principles">
+      <div class="principle big">
+        <span class="p-num">01 / 06</span>
+        <div class="p-title">가격이 가장<br/>먼저 보인다</div>
+        <div class="p-body">무료 라임 그린, 저렴 바이올렛, 임박 탱저린. 색만 봐도 갈지 말지 결정.</div>
+      </div>
+      <div class="principle lime">
+        <span class="p-num">02</span>
+        <div class="p-title">스티커 미학</div>
+        <div class="p-body">정보 = 옷에 붙이는 스티커. 둥글고, 굵고, 직설적.</div>
+      </div>
+      <div class="principle pink">
+        <span class="p-num">03</span>
+        <div class="p-title">한 탭이면 끝</div>
+        <div class="p-body">예약·지도·공유는 카드 위에서. 속도가 곧 품격.</div>
+      </div>
+      <div class="principle violet">
+        <span class="p-num">04</span>
+        <div class="p-title">소셜 = 동기</div>
+        <div class="p-body">친구가 다녀온 곳, 좋아요·저장 카운트. 가는 이유가 된다.</div>
+      </div>
+      <div class="principle ink">
+        <span class="p-num">05</span>
+        <div class="p-title">위치는 무조건 표시</div>
+        <div class="p-body">0.4km / 1.2km. "지금 갈 수 있나?"의 답.</div>
+      </div>
+      <div class="principle tang">
+        <span class="p-num">06</span>
+        <div class="p-title">다녀와서 자랑</div>
+        <div class="p-body">"0원으로 다녀왔다" 인증. 자연스럽게 도는 바이럴.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 5. Palette ─────────── -->
+  <section class="section dark">
+    <div class="section-head">
+      <div class="section-no">Section 05</div>
+      <h2>The <span class="lime-glow">Palette</span></h2>
+      <p class="lead">Off-white &amp; ink — 그리고 acid 라임이 모든 걸 살린다.</p>
+    </div>
+
+    <div class="palette-label" style="color:rgba(255,255,255,0.6);">— Acid · Signature</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="chip" style="background:#D4FF00"></div><div class="meta"><div class="name">lime</div><div class="hex">#D4FF00</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#6E3FFF"></div><div class="meta"><div class="name">violet</div><div class="hex">#6E3FFF</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FF3D8B"></div><div class="meta"><div class="name">pink</div><div class="hex">#FF3D8B</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FF5C28"></div><div class="meta"><div class="name">tang</div><div class="hex">#FF5C28</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#00C2FF"></div><div class="meta"><div class="name">ice</div><div class="hex">#00C2FF</div></div></div>
+    </div>
+
+    <div class="palette-label" style="color:rgba(255,255,255,0.6);">— Mono · Base</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="chip" style="background:#0A0A0A"></div><div class="meta"><div class="name">ink</div><div class="hex">#0A0A0A</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#3D3D3D"></div><div class="meta"><div class="name">ink-3</div><div class="hex">#3D3D3D</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#9A9A9A"></div><div class="meta"><div class="name">ink-5</div><div class="hex">#9A9A9A</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ECEAE5"></div><div class="meta"><div class="name">bg</div><div class="hex">#ECEAE5</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FFFFFF"></div><div class="meta"><div class="name">card</div><div class="hex">#FFFFFF</div></div></div>
+    </div>
+
+    <div class="palette-label" style="color:rgba(255,255,255,0.6);">— Soft · Accents</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="chip" style="background:#EFFF7A"></div><div class="meta"><div class="name">lime soft</div><div class="hex">#EFFF7A</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#D7C5FF"></div><div class="meta"><div class="name">violet soft</div><div class="hex">#D7C5FF</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FFC5DC"></div><div class="meta"><div class="name">pink soft</div><div class="hex">#FFC5DC</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FFD4C2"></div><div class="meta"><div class="name">tang soft</div><div class="hex">#FFD4C2</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#B8EEFF"></div><div class="meta"><div class="name">ice soft</div><div class="hex">#B8EEFF</div></div></div>
+    </div>
+  </section>
+
+  <!-- ─────────── 6. Type ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 06</div>
+      <h2>Type <span class="it">Stack</span></h2>
+      <p class="lead">Pretendard 단일 패밀리. Heavy(900)부터 Light(300)까지 전체 활용.</p>
+    </div>
+
+    <h3 class="sub-h">Family</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <div style="padding:26px;background:var(--ink);color:var(--bg);border-radius:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--lime);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px;font-weight:600;">Display · 900</div>
+        <div style="font-family:var(--display);font-size:80px;font-weight:900;line-height:0.85;letter-spacing:-0.06em;margin-bottom:10px;">Aa</div>
+        <div style="font-family:var(--display);font-size:18px;font-weight:800;color:var(--lime);margin-bottom:10px;letter-spacing:-0.025em;">Pretendard Black</div>
+        <div style="font-size:13px;line-height:1.5;color:rgba(255,255,255,0.7);font-weight:500;">큰 헤드라인, 카드 타이틀, 숫자.</div>
+      </div>
+      <div style="padding:26px;background:var(--bg-2);border-radius:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--violet);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px;font-weight:600;">Body · 500</div>
+        <div style="font-family:var(--sans);font-size:80px;font-weight:600;line-height:0.85;letter-spacing:-0.045em;margin-bottom:10px;color:var(--ink);">Aa</div>
+        <div style="font-family:var(--sans);font-weight:700;font-size:18px;color:var(--ink);margin-bottom:10px;letter-spacing:-0.025em;">Pretendard Medium</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--ink-3);font-weight:500;">본문, UI 라벨, 한글 워크호스.</div>
+      </div>
+      <div style="padding:26px;background:var(--lime);border-radius:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--ink);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:14px;font-weight:600;">Code · Mono</div>
+        <div style="font-family:var(--mono);font-size:74px;font-weight:700;line-height:0.9;margin-bottom:10px;color:var(--ink);letter-spacing:-0.04em;">Aa</div>
+        <div style="font-family:var(--mono);font-weight:500;font-size:15px;color:var(--ink);margin-bottom:10px;">JetBrains Mono</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--ink-2);font-weight:600;">캡션, 가격, 메타데이터.</div>
+      </div>
+    </div>
+
+    <h3 class="sub-h">Scale</h3>
+    <div class="type-table">
+      <div class="type-row">
+        <div class="type-head">Preview</div>
+        <div class="type-head">Token</div>
+        <div class="type-head">Size / Weight</div>
+        <div class="type-head">Used for</div>
+      </div>
+      <div class="type-row">
+        <div class="type-preview"><span style="font-family:var(--display);font-size:36px;font-weight:900;letter-spacing:-0.05em;line-height:1;">오늘 무료로 가는</span></div>
+        <div class="type-name">display</div>
+        <div class="type-val">36 / 900</div>
+        <div class="type-use">화면 헤드라인</div>
+      </div>
+      <div class="type-row">
+        <div class="type-preview"><span style="font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-0.035em;">MMCA 무료 관람일</span></div>
+        <div class="type-name">cardTitle</div>
+        <div class="type-val">24 / 800</div>
+        <div class="type-use">카드 타이틀</div>
+      </div>
+      <div class="type-row">
+        <div class="type-preview"><span style="font-family:var(--sans);font-size:15px;font-weight:500;letter-spacing:-0.015em;">매월 마지막 수요일은 문화가 있는 날.</span></div>
+        <div class="type-name">body</div>
+        <div class="type-val">15 / 500</div>
+        <div class="type-use">본문, 설명</div>
+      </div>
+      <div class="type-row">
+        <div class="type-preview"><span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--violet);">SECTION · 03</span></div>
+        <div class="type-name">overline</div>
+        <div class="type-val">11 / 600 mono</div>
+        <div class="type-use">오버라인</div>
+      </div>
+      <div class="type-row">
+        <div class="type-preview"><span style="font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:0.1em;color:var(--ink-4);">서울 종로 · 0.8KM · D-2</span></div>
+        <div class="type-name">caption</div>
+        <div class="type-val">9.5 / 600 mono</div>
+        <div class="type-use">메타 정보</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 7. Spacing ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 07</div>
+      <h2>Space <span class="it">&amp; Round</span></h2>
+      <p class="lead">8px 그리드. 라운드는 작거나 — 아예 알약. 중간은 없다.</p>
+    </div>
+
+    <h3 class="sub-h">Spacing</h3>
+    <div class="scale-row">
+      <div class="scale-item"><div class="box" style="width:4px;height:4px;"></div><div class="label">xs · 4</div></div>
+      <div class="scale-item"><div class="box" style="width:8px;height:8px;"></div><div class="label">sm · 8</div></div>
+      <div class="scale-item"><div class="box" style="width:12px;height:12px;"></div><div class="label">md · 12</div></div>
+      <div class="scale-item"><div class="box" style="width:16px;height:16px;"></div><div class="label">lg · 16</div></div>
+      <div class="scale-item"><div class="box" style="width:24px;height:24px;"></div><div class="label">xl · 24</div></div>
+      <div class="scale-item"><div class="box" style="width:32px;height:32px;"></div><div class="label">xxl · 32</div></div>
+      <div class="scale-item"><div class="box" style="width:48px;height:48px;"></div><div class="label">3xl · 48</div></div>
+    </div>
+
+    <h3 class="sub-h">Radius</h3>
+    <div class="radius-row">
+      <div class="radius-box" style="border-radius:0;">none<br/>0</div>
+      <div class="radius-box" style="border-radius:8px;">sm<br/>8</div>
+      <div class="radius-box" style="border-radius:14px;">md<br/>14</div>
+      <div class="radius-box" style="border-radius:20px;">lg<br/>20</div>
+      <div class="radius-box" style="border-radius:999px;">pill<br/>999</div>
+    </div>
+  </section>
+
+  <!-- ─────────── 8. Mockups ─────────── -->
+  <section class="section dark">
+    <div class="section-head">
+      <div class="section-no">Section 08</div>
+      <h2>The <span class="lime-glow">Screens</span></h2>
+      <p class="lead">Feed · Detail · Saved. 3개 핵심 화면.</p>
+    </div>
+
+    <div class="mockups">
+
+      <!-- ── HOME · Feed ────────────────────── -->
+      <div class="phone">
+        <div class="phone-head">
+          <span class="label">01 · FEED</span>
+          <span class="pin"></span>
+        </div>
+        <div class="screen">
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="right">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 6s4-4 11-4 11 4 11 4M5 10s3-3 7-3 7 3 7 3M9 14s1-1.5 3-1.5 3 1.5 3 1.5"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="10" rx="2"/></svg>
+            </div>
+          </div>
+
+          <div class="hero">
+            <div class="hero-top">
+              <div class="app-mark">
+                <div class="bk">品</div>
+                <span>0원의 <span class="nm-it">품격</span></span>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <div class="icon-btn ghost">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <div class="icon-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stories rail -->
+          <div class="stories-rail">
+            <div class="story live">
+              <div class="ring"><div class="inner"><div class="pic">
+                <svg viewBox="0 0 50 50" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <radialGradient id="s1g" cx="0.4" cy="0.4" r="0.8">
+                      <stop offset="0" stop-color="#FF8855"/>
+                      <stop offset="0.5" stop-color="#FF3D8B"/>
+                      <stop offset="1" stop-color="#3A1A4A"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="50" height="50" fill="url(#s1g)"/>
+                  <circle cx="32" cy="20" r="8" fill="#FFE5A0" opacity="0.85"/>
+                  <path d="M0,32 Q15,28 30,30 T50,28 L50,50 L0,50 Z" fill="#0A0510" opacity="0.65"/>
+                </svg>
+              </div></div></div>
+              <div class="name">LIVE</div>
+            </div>
+            <div class="story">
+              <div class="ring"><div class="inner"><div class="pic">
+                <svg viewBox="0 0 50 50" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="s2g" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stop-color="#1A0E25"/>
+                      <stop offset="1" stop-color="#3A2040"/>
+                    </linearGradient>
+                    <radialGradient id="s2sp" cx="0.5" cy="0.4" r="0.5">
+                      <stop offset="0" stop-color="#FFD9A8" stop-opacity="0.5"/>
+                      <stop offset="1" stop-color="#FFD9A8" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="50" height="50" fill="url(#s2g)"/>
+                  <rect width="50" height="50" fill="url(#s2sp)"/>
+                  <rect x="17" y="12" width="16" height="22" fill="#8A4422" opacity="0.7"/>
+                  <rect x="19" y="14" width="12" height="18" fill="#AA6633" opacity="0.5"/>
+                </svg>
+              </div></div></div>
+              <div class="name">전시</div>
+            </div>
+            <div class="story">
+              <div class="ring"><div class="inner"><div class="pic">
+                <svg viewBox="0 0 50 50" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <radialGradient id="s3g" cx="0.5" cy="0.4" r="0.7">
+                      <stop offset="0" stop-color="#6E3FFF" stop-opacity="0.9"/>
+                      <stop offset="1" stop-color="#0A0210"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="50" height="50" fill="url(#s3g)"/>
+                  <path d="M25,12 L12,38 L38,38 Z" fill="#FF3D8B" opacity="0.25"/>
+                  <ellipse cx="25" cy="40" rx="14" ry="2" fill="#0A0210"/>
+                  <ellipse cx="18" cy="38" rx="2" ry="3" fill="#0A0210"/>
+                  <ellipse cx="25" cy="38" rx="2" ry="3" fill="#0A0210"/>
+                  <ellipse cx="32" cy="38" rx="2" ry="3" fill="#0A0210"/>
+                </svg>
+              </div></div></div>
+              <div class="name">공연</div>
+            </div>
+            <div class="story">
+              <div class="ring"><div class="inner"><div class="pic">
+                <svg viewBox="0 0 50 50" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="s4g" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#88AACC"/>
+                      <stop offset="0.6" stop-color="#FFAA88"/>
+                      <stop offset="1" stop-color="#FFCC99"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="50" height="50" fill="url(#s4g)"/>
+                  <path d="M0,28 L12,18 L25,24 L38,16 L50,22 L50,50 L0,50 Z" fill="#3A2848" opacity="0.85"/>
+                  <ellipse cx="10" cy="36" rx="6" ry="7" fill="#0A1A08" opacity="0.9"/>
+                  <ellipse cx="40" cy="38" rx="5" ry="6" fill="#0A1A08" opacity="0.9"/>
+                  <rect y="40" width="50" height="10" fill="#0A0510"/>
+                </svg>
+              </div></div></div>
+              <div class="name">팝업</div>
+            </div>
+            <div class="story viewed">
+              <div class="ring"><div class="inner"><div class="pic">
+                <svg viewBox="0 0 50 50" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="s5g" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#2A1A0D"/>
+                      <stop offset="1" stop-color="#553322"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="50" height="50" fill="url(#s5g)"/>
+                  <rect x="8" y="14" width="3" height="20" fill="#AA6633"/>
+                  <rect x="12" y="14" width="2" height="20" fill="#CC8855"/>
+                  <rect x="15" y="14" width="3" height="20" fill="#884422"/>
+                  <rect x="34" y="16" width="2" height="18" fill="#CC8855"/>
+                  <rect x="37" y="16" width="3" height="18" fill="#AA6633"/>
+                  <rect y="36" width="50" height="14" fill="#1A0D05"/>
+                </svg>
+              </div></div></div>
+              <div class="name">독서</div>
+            </div>
+            <div class="story viewed">
+              <div class="ring"><div class="inner"><div class="pic">
+                <svg viewBox="0 0 50 50" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <radialGradient id="s6g" cx="0.5" cy="0.5" r="0.7">
+                      <stop offset="0" stop-color="#00C2FF" stop-opacity="0.6"/>
+                      <stop offset="1" stop-color="#1A2540"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="50" height="50" fill="url(#s6g)"/>
+                  <circle cx="25" cy="25" r="10" fill="#D4FF00" opacity="0.4"/>
+                  <circle cx="25" cy="25" r="6" fill="#0A0A0A"/>
+                </svg>
+              </div></div></div>
+              <div class="name">야외</div>
+            </div>
+          </div>
+
+          <div class="big-headline">
+            <div class="kicker"><span class="pulse"></span>오늘의 추천</div>
+            <h1>지금 <span class="vio">무료</span><br/>로 가는 곳.</h1>
+          </div>
+
+          <div class="digest">
+            <div class="dg lime">
+              <div class="vl">12</div>
+              <div class="lb">FREE NOW</div>
+            </div>
+            <div class="dg violet">
+              <div class="vl">28</div>
+              <div class="lb">UNDER 10K</div>
+            </div>
+            <div class="dg">
+              <div class="vl">43</div>
+              <div class="lb">WEEKEND</div>
+            </div>
+          </div>
+
+          <div class="chip-rail">
+            <div class="chip active">For You</div>
+            <div class="chip lime">● FREE 12</div>
+            <div class="chip">전시</div>
+            <div class="chip">공연</div>
+            <div class="chip">팝업</div>
+          </div>
+
+          <!-- Big card · museum interior -->
+          <div class="big-card">
+            <div class="img">
+              <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="hbg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#1A0E25"/>
+                    <stop offset="0.5" stop-color="#2A1840"/>
+                    <stop offset="1" stop-color="#0F0820"/>
+                  </linearGradient>
+                  <radialGradient id="hspot" cx="0.5" cy="0.3" r="0.55">
+                    <stop offset="0" stop-color="#FFD9A8" stop-opacity="0.45"/>
+                    <stop offset="1" stop-color="#FFD9A8" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="hglow" cx="0.85" cy="0.2" r="0.4">
+                    <stop offset="0" stop-color="#6E3FFF" stop-opacity="0.5"/>
+                    <stop offset="1" stop-color="#6E3FFF" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="hglow2" cx="0.15" cy="0.8" r="0.4">
+                    <stop offset="0" stop-color="#FF3D8B" stop-opacity="0.35"/>
+                    <stop offset="1" stop-color="#FF3D8B" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="320" height="200" fill="url(#hbg)"/>
+                <rect width="320" height="200" fill="url(#hglow)"/>
+                <rect width="320" height="200" fill="url(#hglow2)"/>
+                <rect width="320" height="200" fill="url(#hspot)"/>
+                <!-- floor with perspective -->
+                <path d="M0,140 L320,140 L350,200 L-30,200 Z" fill="#0A0518" opacity="0.85"/>
+                <!-- left painting -->
+                <rect x="40" y="50" width="60" height="80" fill="#8A4422" opacity="0.7"/>
+                <rect x="44" y="54" width="52" height="72" fill="#C97E5A" opacity="0.5"/>
+                <rect x="44" y="54" width="52" height="36" fill="#2A1A30" opacity="0.6"/>
+                <!-- center painting (lit) -->
+                <rect x="130" y="40" width="80" height="100" fill="#1A0E1A"/>
+                <rect x="134" y="44" width="72" height="92" fill="#3A2050"/>
+                <circle cx="170" cy="80" r="20" fill="#FFCC88" opacity="0.7"/>
+                <path d="M134,110 Q170,95 206,110 L206,136 L134,136 Z" fill="#6E3FFF" opacity="0.6"/>
+                <!-- right painting -->
+                <rect x="230" y="55" width="55" height="75" fill="#8A4422" opacity="0.6"/>
+                <rect x="234" y="59" width="47" height="67" fill="#5A3A2A" opacity="0.5"/>
+                <!-- visitor silhouette -->
+                <ellipse cx="170" cy="172" rx="6" ry="3" fill="#0A0518"/>
+                <rect x="167" y="150" width="6" height="22" fill="#0A0518"/>
+                <circle cx="170" cy="146" r="4" fill="#0A0518"/>
+                <!-- grain -->
+                <rect width="320" height="200" filter="url(#grain)" opacity="0.5"/>
+              </svg>
+              <div class="img-tags">
+                <div class="img-tag lime">● FREE</div>
+                <div class="img-tag dark">D-2</div>
+              </div>
+              <div class="img-fav">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </div>
+            </div>
+            <div class="body">
+              <div class="b-title">MMCA 현대차 시리즈</div>
+              <div class="b-meta">
+                <span>국립현대미술관</span>
+                <span class="dot">·</span>
+                <span>1.2km</span>
+                <span class="dot">·</span>
+                <span>23석 남음</span>
+              </div>
+              <div class="b-stats">
+                <span class="stat like">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  2.4k
+                </span>
+                <span class="stat save">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  847
+                </span>
+                <span class="cta">예약</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini cards -->
+          <div class="mini-row">
+            <div class="mini-card">
+              <div class="m-img">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <radialGradient id="m1g" cx="0.5" cy="0.4" r="0.7">
+                      <stop offset="0" stop-color="#FF6B35" stop-opacity="0.85"/>
+                      <stop offset="0.6" stop-color="#FF3D8B" stop-opacity="0.6"/>
+                      <stop offset="1" stop-color="#1A0530"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="100" height="100" fill="url(#m1g)"/>
+                  <path d="M50,20 L25,75 L75,75 Z" fill="#D4FF00" opacity="0.18"/>
+                  <path d="M50,25 L40,75 L60,75 Z" fill="#FF3D8B" opacity="0.25"/>
+                  <ellipse cx="50" cy="82" rx="28" ry="3" fill="#000" opacity="0.5"/>
+                  <ellipse cx="20" cy="80" rx="3" ry="4" fill="#0A0210"/>
+                  <ellipse cx="35" cy="82" rx="3" ry="4" fill="#0A0210"/>
+                  <ellipse cx="50" cy="80" rx="3" ry="4" fill="#0A0210"/>
+                  <ellipse cx="65" cy="82" rx="3" ry="4" fill="#0A0210"/>
+                  <ellipse cx="80" cy="80" rx="3" ry="4" fill="#0A0210"/>
+                  <rect y="84" width="100" height="16" fill="#0A0210"/>
+                  <rect x="44" y="68" width="2" height="14" fill="#0A0210"/>
+                  <rect width="100" height="100" filter="url(#grain)" opacity="0.4"/>
+                </svg>
+                <div class="m-pill lime">● FREE</div>
+              </div>
+              <div class="m-body">
+                <div class="m-title">홍대 버스킹</div>
+                <div class="m-meta"><span>0.4km</span><span class="dot">·</span><span>오늘 18:00</span></div>
+              </div>
+            </div>
+            <div class="mini-card">
+              <div class="m-img">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="m2g" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#2A1A0D"/>
+                      <stop offset="1" stop-color="#5A3322"/>
+                    </linearGradient>
+                    <radialGradient id="m2lamp" cx="0.5" cy="0.3" r="0.5">
+                      <stop offset="0" stop-color="#FFE5A0" stop-opacity="0.6"/>
+                      <stop offset="1" stop-color="#FFE5A0" stop-opacity="0"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="100" height="100" fill="url(#m2g)"/>
+                  <rect width="100" height="100" fill="url(#m2lamp)"/>
+                  <rect x="10" y="20" width="6" height="40" fill="#AA6633"/>
+                  <rect x="18" y="20" width="4" height="40" fill="#CC8855"/>
+                  <rect x="24" y="20" width="5" height="40" fill="#884422"/>
+                  <rect x="31" y="22" width="4" height="38" fill="#AA6633"/>
+                  <rect x="65" y="22" width="5" height="38" fill="#884422"/>
+                  <rect x="72" y="22" width="4" height="38" fill="#CC8855"/>
+                  <rect x="78" y="22" width="6" height="38" fill="#AA6633"/>
+                  <rect y="68" width="100" height="32" fill="#0A0500"/>
+                  <rect x="38" y="58" width="24" height="3" fill="#D4FF00"/>
+                  <rect x="40" y="56" width="20" height="2" fill="#AA6633"/>
+                  <rect width="100" height="100" filter="url(#grain)" opacity="0.4"/>
+                </svg>
+                <div class="m-pill violet">5,000원</div>
+              </div>
+              <div class="m-body">
+                <div class="m-title">시인의 밤</div>
+                <div class="m-meta"><span>0.9km</span><span class="dot">·</span><span>토 19:30</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab active">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Feed
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg>
+              Atlas
+            </div>
+            <div class="tab add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Saved
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+              Me
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DETAIL ────────────────────────── -->
+      <div class="phone">
+        <div class="phone-head">
+          <span class="label">02 · DETAIL</span>
+          <span class="pin"></span>
+        </div>
+        <div class="screen detail-screen">
+          <!-- Photo bg · museum night -->
+          <div style="position:absolute;inset:0;">
+            <svg viewBox="0 0 320 700" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%;">
+              <defs>
+                <linearGradient id="dbg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#1A0E25"/>
+                  <stop offset="0.4" stop-color="#3A1A4A"/>
+                  <stop offset="0.7" stop-color="#5E2A4A"/>
+                  <stop offset="1" stop-color="#0A0510"/>
+                </linearGradient>
+                <radialGradient id="dspot" cx="0.5" cy="0.32" r="0.4">
+                  <stop offset="0" stop-color="#FFD9A8" stop-opacity="0.55"/>
+                  <stop offset="1" stop-color="#FFD9A8" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="dgl1" cx="0.85" cy="0.15" r="0.35">
+                  <stop offset="0" stop-color="#6E3FFF" stop-opacity="0.55"/>
+                  <stop offset="1" stop-color="#6E3FFF" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="dgl2" cx="0.15" cy="0.55" r="0.3">
+                  <stop offset="0" stop-color="#FF3D8B" stop-opacity="0.45"/>
+                  <stop offset="1" stop-color="#FF3D8B" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="dgl3" cx="0.95" cy="0.7" r="0.3">
+                  <stop offset="0" stop-color="#D4FF00" stop-opacity="0.18"/>
+                  <stop offset="1" stop-color="#D4FF00" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <rect width="320" height="700" fill="url(#dbg)"/>
+              <rect width="320" height="700" fill="url(#dgl1)"/>
+              <rect width="320" height="700" fill="url(#dgl2)"/>
+              <rect width="320" height="700" fill="url(#dgl3)"/>
+              <rect width="320" height="700" fill="url(#dspot)"/>
+              <!-- floor perspective -->
+              <path d="M0,500 L320,500 L380,700 L-60,700 Z" fill="#0A0510" opacity="0.85"/>
+              <!-- center artwork (large, lit) -->
+              <rect x="80" y="160" width="160" height="220" fill="#1A0E1A"/>
+              <rect x="86" y="166" width="148" height="208" fill="#3A2050"/>
+              <circle cx="160" cy="240" r="40" fill="#FFCC88" opacity="0.7"/>
+              <circle cx="160" cy="240" r="40" fill="#FF8855" opacity="0.3"/>
+              <path d="M86,310 Q160,280 234,310 L234,374 L86,374 Z" fill="#6E3FFF" opacity="0.6"/>
+              <path d="M86,340 Q160,320 234,340 L234,374 L86,374 Z" fill="#1A0530" opacity="0.6"/>
+              <!-- side paintings -->
+              <rect x="10" y="200" width="50" height="120" fill="#8A4422" opacity="0.5"/>
+              <rect x="14" y="204" width="42" height="112" fill="#5A3A2A" opacity="0.4"/>
+              <rect x="260" y="190" width="50" height="130" fill="#8A4422" opacity="0.5"/>
+              <rect x="264" y="194" width="42" height="122" fill="#3A2A40" opacity="0.4"/>
+              <!-- visitor silhouette far -->
+              <ellipse cx="160" cy="475" rx="10" ry="3" fill="#000" opacity="0.6"/>
+              <rect x="155" y="430" width="10" height="48" fill="#0A0510"/>
+              <circle cx="160" cy="424" r="6" fill="#0A0510"/>
+              <rect width="320" height="700" filter="url(#grain)" opacity="0.55"/>
+            </svg>
+          </div>
+          <!-- gradient overlay top→bottom -->
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 24%, rgba(0,0,0,0) 55%, rgba(10,5,16,0.97) 100%);"></div>
+
+          <!-- progress bar -->
+          <div style="position:absolute;top:46px;left:14px;right:14px;display:flex;gap:3px;z-index:6;">
+            <div style="flex:1;height:2px;background:var(--lime);border-radius:1px;"></div>
+            <div style="flex:1;height:2px;background:rgba(255,255,255,0.3);border-radius:1px;"></div>
+            <div style="flex:1;height:2px;background:rgba(255,255,255,0.2);border-radius:1px;"></div>
+            <div style="flex:1;height:2px;background:rgba(255,255,255,0.2);border-radius:1px;"></div>
+          </div>
+
+          <div class="status-bar" style="color:#fff;">
+            <span>9:41</span>
+            <div class="right">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 6s4-4 11-4 11 4 11 4M5 10s3-3 7-3 7 3 7 3M9 14s1-1.5 3-1.5 3 1.5 3 1.5"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="10" rx="2"/></svg>
+            </div>
+          </div>
+
+          <!-- top bar -->
+          <div style="position:relative;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;color:#fff;">
+            <div style="width:34px;height:34px;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:50%;display:grid;place-items:center;border:1px solid rgba(255,255,255,0.15);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div style="font-family:var(--mono);font-size:9.5px;font-weight:600;color:rgba(255,255,255,0.85);letter-spacing:0.16em;">No. 042 / 43</div>
+            <div style="width:34px;height:34px;background:rgba(255,255,255,0.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:50%;display:grid;place-items:center;border:1px solid rgba(255,255,255,0.15);">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </div>
+          </div>
+
+          <!-- creator badge -->
+          <div style="position:absolute;top:104px;left:14px;z-index:6;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:5px 10px 5px 5px;border-radius:999px;border:1px solid rgba(255,255,255,0.15);">
+            <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#D4FF00,#6E3FFF);position:relative;overflow:hidden;">
+              <svg viewBox="0 0 26 26" style="width:100%;height:100%;"><circle cx="13" cy="11" r="4" fill="rgba(0,0,0,0.3)"/><ellipse cx="13" cy="22" rx="8" ry="5" fill="rgba(0,0,0,0.3)"/></svg>
+            </div>
+            <div style="font-family:var(--display);font-size:12px;color:#fff;font-weight:700;letter-spacing:-0.025em;">@mmca_seoul</div>
+            <div style="margin-left:4px;padding:4px 11px;background:var(--lime);color:var(--ink);font-family:var(--sans);font-size:10px;font-weight:800;letter-spacing:-0.01em;border-radius:999px;">팔로우</div>
+          </div>
+
+          <!-- Side actions -->
+          <div style="position:absolute;right:12px;top:200px;z-index:6;display:flex;flex-direction:column;gap:18px;align-items:center;">
+            <div style="text-align:center;">
+              <div style="width:44px;height:44px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:50%;display:grid;place-items:center;color:var(--pink);border:1px solid rgba(255,255,255,0.15);">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </div>
+              <div style="font-family:var(--sans);font-size:10.5px;font-weight:800;color:#fff;margin-top:4px;letter-spacing:-0.01em;">2.4k</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:44px;height:44px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:50%;display:grid;place-items:center;color:var(--lime);border:1px solid rgba(255,255,255,0.15);">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div style="font-family:var(--sans);font-size:10.5px;font-weight:800;color:#fff;margin-top:4px;letter-spacing:-0.01em;">847</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="width:44px;height:44px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:50%;display:grid;place-items:center;color:#fff;border:1px solid rgba(255,255,255,0.15);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              </div>
+              <div style="font-family:var(--sans);font-size:10.5px;font-weight:800;color:#fff;margin-top:4px;letter-spacing:-0.01em;">128</div>
+            </div>
+            <div style="width:44px;height:44px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:50%;display:grid;place-items:center;color:#fff;border:1px solid rgba(255,255,255,0.15);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="17" height="17"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </div>
+          </div>
+
+          <!-- Bottom info -->
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:18px 18px 28px;z-index:6;color:#fff;">
+            <div style="display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;">
+              <div style="padding:6px 13px;background:var(--lime);color:var(--ink);font-family:var(--sans);font-size:11.5px;font-weight:800;letter-spacing:-0.01em;border-radius:999px;">● FREE 0원</div>
+              <div style="padding:6px 13px;background:var(--tang);color:#fff;font-family:var(--sans);font-size:11.5px;font-weight:800;letter-spacing:-0.01em;border-radius:999px;">D-2 임박</div>
+              <div style="padding:6px 13px;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-family:var(--sans);font-size:11.5px;font-weight:700;border-radius:999px;border:1px solid rgba(255,255,255,0.18);">23석</div>
+            </div>
+            <div style="font-family:var(--display);font-size:28px;font-weight:900;line-height:1.0;letter-spacing:-0.045em;color:#fff;margin-bottom:8px;">
+              MMCA <span style="color:var(--lime);">현대차</span><br/>시리즈 무료 관람일
+            </div>
+            <div style="font-family:var(--sans);font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:-0.015em;margin-bottom:14px;">📍 종로 삼청로 30 · 1.2km · 10:00–18:00</div>
+
+            <!-- comment preview -->
+            <div style="display:flex;gap:10px;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:18px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.15);">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#FF3D8B,#FF5C28);overflow:hidden;">
+                <svg viewBox="0 0 24 24" style="width:100%;height:100%;"><circle cx="12" cy="10" r="4" fill="rgba(0,0,0,0.3)"/><ellipse cx="12" cy="20" rx="8" ry="4" fill="rgba(0,0,0,0.3)"/></svg>
+              </div>
+              <div style="font-family:var(--sans);font-size:12px;font-weight:500;color:#fff;line-height:1.3;flex:1;letter-spacing:-0.01em;">
+                <span style="color:var(--lime);font-weight:800;">@yujin_</span> 진짜 0원이라고? 토요일에 갔다왔어요 🤍
+              </div>
+              <div style="font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,0.5);">128</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:8px;">
+              <div style="padding:14px;background:var(--lime);color:var(--ink);font-family:var(--display);font-size:14px;font-weight:800;letter-spacing:-0.025em;text-align:center;border-radius:999px;">예약하기 →</div>
+              <div style="padding:14px;background:rgba(255,255,255,0.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-family:var(--display);font-size:14px;font-weight:800;border:1px solid rgba(255,255,255,0.25);text-align:center;border-radius:999px;letter-spacing:-0.025em;">길찾기</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SAVED · profile ────────────────── -->
+      <div class="phone">
+        <div class="phone-head">
+          <span class="label">03 · SAVED</span>
+          <span class="pin"></span>
+        </div>
+        <div class="screen">
+          <div class="status-bar"><span>9:41</span><div class="right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 6s4-4 11-4 11 4 11 4M5 10s3-3 7-3 7 3 7 3M9 14s1-1.5 3-1.5 3 1.5 3 1.5"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="18" height="10" rx="2"/></svg>
+          </div></div>
+
+          <!-- Profile header -->
+          <div style="padding:14px 18px 12px;">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+              <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#D4FF00,#6E3FFF,#FF3D8B);position:relative;overflow:hidden;">
+                <svg viewBox="0 0 64 64" style="width:100%;height:100%;">
+                  <circle cx="32" cy="26" r="11" fill="rgba(0,0,0,0.25)"/>
+                  <ellipse cx="32" cy="58" rx="22" ry="14" fill="rgba(0,0,0,0.25)"/>
+                </svg>
+                <div style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;background:var(--lime);border:3px solid var(--bg);border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:10px;font-weight:800;color:var(--ink);letter-spacing:-0.025em;">12</div>
+              </div>
+              <div style="flex:1;">
+                <div style="font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--ink);">@yujin_</div>
+                <div style="font-family:var(--sans);font-size:11.5px;color:var(--ink-4);font-weight:600;letter-spacing:-0.015em;">12 saved · 8 다녀옴</div>
+              </div>
+              <div style="padding:7px 14px;background:var(--ink);color:var(--bg);font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:-0.01em;border-radius:999px;">EDIT</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;">
+              <div style="padding:12px;background:var(--lime);border-radius:14px;text-align:center;">
+                <div style="font-family:var(--display);font-size:22px;font-weight:900;letter-spacing:-0.045em;line-height:1;color:var(--ink);">7</div>
+                <div style="font-family:var(--sans);font-size:9.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;margin-top:5px;">FREE 다녀옴</div>
+              </div>
+              <div style="padding:12px;background:var(--violet);border-radius:14px;text-align:center;color:var(--bg);">
+                <div style="font-family:var(--display);font-size:22px;font-weight:900;letter-spacing:-0.045em;line-height:1;">₩47K</div>
+                <div style="font-family:var(--sans);font-size:9.5px;font-weight:800;letter-spacing:-0.01em;margin-top:5px;opacity:0.85;">아낀 돈</div>
+              </div>
+              <div style="padding:12px;background:var(--ink);border-radius:14px;text-align:center;color:var(--bg);">
+                <div style="font-family:var(--display);font-size:22px;font-weight:900;letter-spacing:-0.045em;line-height:1;">5</div>
+                <div style="font-family:var(--sans);font-size:9.5px;font-weight:800;letter-spacing:-0.01em;margin-top:5px;opacity:0.7;">이번 달</div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:4px;border-bottom:1.5px solid var(--line);margin-bottom:0;">
+              <div style="padding:10px 0;border-bottom:2px solid var(--ink);margin-bottom:-1.5px;font-family:var(--sans);font-size:12px;font-weight:800;letter-spacing:-0.015em;color:var(--ink);flex:1;text-align:center;">SAVED · 12</div>
+              <div style="padding:10px 0;font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:-0.015em;color:var(--ink-5);flex:1;text-align:center;">VISITED · 8</div>
+            </div>
+          </div>
+
+          <!-- IG Grid · cinematic -->
+          <div class="ig-grid">
+            <!-- 1. Sunset concert -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="ig1g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#3A1A4A"/>
+                    <stop offset="0.5" stop-color="#FF3D8B"/>
+                    <stop offset="1" stop-color="#FF8855"/>
+                  </linearGradient>
+                  <radialGradient id="ig1sun" cx="0.7" cy="0.55" r="0.3">
+                    <stop offset="0" stop-color="#FFE5A0" stop-opacity="0.9"/>
+                    <stop offset="1" stop-color="#FFE5A0" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#ig1g)"/>
+                <rect width="100" height="100" fill="url(#ig1sun)"/>
+                <path d="M0,55 L25,40 L50,50 L75,38 L100,48 L100,100 L0,100 Z" fill="#1A0530" opacity="0.85"/>
+                <path d="M0,72 Q30,66 60,70 T100,68 L100,100 L0,100 Z" fill="#0A0210"/>
+                <ellipse cx="20" cy="80" rx="3" ry="4" fill="#0A0210"/>
+                <ellipse cx="35" cy="82" rx="3" ry="4" fill="#0A0210"/>
+                <ellipse cx="50" cy="80" rx="3" ry="4" fill="#0A0210"/>
+                <ellipse cx="65" cy="82" rx="3" ry="4" fill="#0A0210"/>
+                <ellipse cx="80" cy="81" rx="3" ry="4" fill="#0A0210"/>
+                <rect x="44" y="65" width="2" height="14" fill="#0A0210"/>
+                <rect width="100" height="100" filter="url(#grain)" opacity="0.4"/>
+              </svg>
+              <div class="price-tag lime">FREE</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 1.2k</div>
+            </div>
+            <!-- 2. Library reading -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="ig2g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#2A1A0D"/>
+                    <stop offset="1" stop-color="#553322"/>
+                  </linearGradient>
+                  <radialGradient id="ig2lamp" cx="0.5" cy="0.4" r="0.5">
+                    <stop offset="0" stop-color="#FFE5A0" stop-opacity="0.55"/>
+                    <stop offset="1" stop-color="#FFE5A0" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#ig2g)"/>
+                <rect width="100" height="100" fill="url(#ig2lamp)"/>
+                <rect x="6" y="14" width="6" height="40" fill="#AA6633"/>
+                <rect x="14" y="14" width="4" height="40" fill="#CC8855"/>
+                <rect x="20" y="14" width="5" height="40" fill="#884422"/>
+                <rect x="27" y="16" width="4" height="38" fill="#AA6633"/>
+                <rect x="69" y="16" width="5" height="38" fill="#884422"/>
+                <rect x="76" y="16" width="4" height="38" fill="#CC8855"/>
+                <rect x="82" y="14" width="6" height="40" fill="#AA6633"/>
+                <rect y="62" width="100" height="38" fill="#0A0500"/>
+                <rect x="35" y="52" width="30" height="3" fill="#D4FF00"/>
+                <rect x="38" y="48" width="24" height="4" fill="#AA6633"/>
+                <rect width="100" height="100" filter="url(#grain)" opacity="0.4"/>
+              </svg>
+              <div class="price-tag violet">5K</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 482</div>
+            </div>
+            <!-- 3. Abstract art (mesh) -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="ig3a" cx="0.3" cy="0.3" r="0.55">
+                    <stop offset="0" stop-color="#FF3D8B" stop-opacity="0.9"/>
+                    <stop offset="1" stop-color="#FF3D8B" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="ig3b" cx="0.75" cy="0.7" r="0.55">
+                    <stop offset="0" stop-color="#6E3FFF" stop-opacity="0.9"/>
+                    <stop offset="1" stop-color="#6E3FFF" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="ig3c" cx="0.5" cy="0.4" r="0.3">
+                    <stop offset="0" stop-color="#D4FF00" stop-opacity="0.85"/>
+                    <stop offset="1" stop-color="#D4FF00" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="#0A0518"/>
+                <rect width="100" height="100" fill="url(#ig3a)"/>
+                <rect width="100" height="100" fill="url(#ig3b)"/>
+                <rect width="100" height="100" fill="url(#ig3c)"/>
+                <rect width="100" height="100" filter="url(#grainSoft)" opacity="0.5"/>
+              </svg>
+              <div class="price-tag lime">FREE</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 3.8k</div>
+            </div>
+            <!-- 4. Architecture -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="ig4g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#88AACC"/>
+                    <stop offset="0.7" stop-color="#FFCC99"/>
+                    <stop offset="1" stop-color="#FFE5B8"/>
+                  </linearGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#ig4g)"/>
+                <rect x="14" y="22" width="72" height="58" fill="#AA6644"/>
+                <rect x="16" y="24" width="68" height="56" fill="#884422" opacity="0.4"/>
+                <rect x="22" y="32" width="3" height="42" fill="#DCDCDC" opacity="0.85"/>
+                <rect x="32" y="32" width="3" height="42" fill="#DCDCDC" opacity="0.85"/>
+                <rect x="42" y="32" width="3" height="42" fill="#DCDCDC" opacity="0.85"/>
+                <rect x="52" y="32" width="3" height="42" fill="#DCDCDC" opacity="0.85"/>
+                <rect x="62" y="32" width="3" height="42" fill="#DCDCDC" opacity="0.85"/>
+                <rect x="72" y="32" width="3" height="42" fill="#DCDCDC" opacity="0.85"/>
+                <path d="M14,22 L50,8 L86,22 Z" fill="#5A2A1A"/>
+                <rect y="80" width="100" height="20" fill="#3A2010"/>
+                <rect width="100" height="100" filter="url(#grain)" opacity="0.35"/>
+              </svg>
+              <div class="price-tag tang">15K</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 234</div>
+            </div>
+            <!-- 5. Mountain park -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="ig5g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#88CCDD"/>
+                    <stop offset="1" stop-color="#FFE5B8"/>
+                  </linearGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#ig5g)"/>
+                <path d="M0,52 L20,28 L42,42 L62,22 L82,38 L100,30 L100,100 L0,100 Z" fill="#3A2848" opacity="0.9"/>
+                <path d="M0,68 L25,55 L50,62 L75,52 L100,60 L100,100 L0,100 Z" fill="#1A0E25" opacity="0.85"/>
+                <ellipse cx="22" cy="76" rx="10" ry="12" fill="#0A1A08"/>
+                <ellipse cx="78" cy="78" rx="9" ry="11" fill="#0A1A08"/>
+                <rect y="84" width="100" height="16" fill="#0A0510"/>
+                <ellipse cx="40" cy="86" rx="2" ry="3" fill="#0A0510"/>
+                <ellipse cx="55" cy="88" rx="2" ry="3" fill="#0A0510"/>
+                <rect width="100" height="100" filter="url(#grain)" opacity="0.4"/>
+              </svg>
+              <div class="price-tag lime">FREE</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 921</div>
+            </div>
+            <!-- 6. Night mesh portrait -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="ig6a" cx="0.5" cy="0.4" r="0.7">
+                    <stop offset="0" stop-color="#6E3FFF" stop-opacity="0.85"/>
+                    <stop offset="1" stop-color="#0A0218"/>
+                  </radialGradient>
+                  <radialGradient id="ig6b" cx="0.7" cy="0.65" r="0.4">
+                    <stop offset="0" stop-color="#FF3D8B" stop-opacity="0.7"/>
+                    <stop offset="1" stop-color="#FF3D8B" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#ig6a)"/>
+                <rect width="100" height="100" fill="url(#ig6b)"/>
+                <circle cx="40" cy="44" r="14" fill="#FFD9A8" opacity="0.65"/>
+                <ellipse cx="40" cy="78" rx="20" ry="22" fill="#0A0218" opacity="0.85"/>
+                <rect width="100" height="100" filter="url(#grainSoft)" opacity="0.5"/>
+              </svg>
+              <div class="price-tag violet">8K</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 567</div>
+            </div>
+            <!-- 7. Pop-up colorful -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="ig7a" cx="0.3" cy="0.3" r="0.6">
+                    <stop offset="0" stop-color="#FF5C28" stop-opacity="0.9"/>
+                    <stop offset="1" stop-color="#FF5C28" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="ig7b" cx="0.7" cy="0.7" r="0.6">
+                    <stop offset="0" stop-color="#FFAACE" stop-opacity="0.85"/>
+                    <stop offset="1" stop-color="#FFAACE" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="#FF3D8B"/>
+                <rect width="100" height="100" fill="url(#ig7a)"/>
+                <rect width="100" height="100" fill="url(#ig7b)"/>
+                <rect x="22" y="32" width="56" height="40" fill="#D4FF00" opacity="0.95" rx="6"/>
+                <rect x="28" y="38" width="44" height="3" fill="#0A0A0A"/>
+                <rect x="28" y="46" width="32" height="3" fill="#0A0A0A"/>
+                <rect x="28" y="54" width="38" height="3" fill="#0A0A0A"/>
+                <rect width="100" height="100" filter="url(#grain)" opacity="0.35"/>
+              </svg>
+              <div class="price-tag lime">FREE</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 412</div>
+            </div>
+            <!-- 8. Window light interior -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="ig8g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#3A2A1A"/>
+                    <stop offset="1" stop-color="#1A0E08"/>
+                  </linearGradient>
+                  <radialGradient id="ig8w" cx="0.5" cy="0.3" r="0.5">
+                    <stop offset="0" stop-color="#FFE5A0" stop-opacity="0.65"/>
+                    <stop offset="1" stop-color="#FFE5A0" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="url(#ig8g)"/>
+                <rect x="20" y="14" width="60" height="58" fill="#FFD9A8" opacity="0.55"/>
+                <rect x="22" y="16" width="56" height="54" fill="#FFE5A0" opacity="0.4"/>
+                <rect x="50" y="14" width="2" height="58" fill="#3A2A1A"/>
+                <rect x="20" y="42" width="60" height="2" fill="#3A2A1A"/>
+                <rect width="100" height="100" fill="url(#ig8w)"/>
+                <ellipse cx="50" cy="86" rx="22" ry="3" fill="#000" opacity="0.55"/>
+                <rect width="100" height="100" filter="url(#grain)" opacity="0.4"/>
+              </svg>
+              <div class="price-tag violet">3K</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 218</div>
+            </div>
+            <!-- 9. Lime mesh -->
+            <div class="ig-cell">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <radialGradient id="ig9a" cx="0.3" cy="0.3" r="0.65">
+                    <stop offset="0" stop-color="#D4FF00" stop-opacity="1"/>
+                    <stop offset="1" stop-color="#D4FF00" stop-opacity="0"/>
+                  </radialGradient>
+                  <radialGradient id="ig9b" cx="0.75" cy="0.7" r="0.55">
+                    <stop offset="0" stop-color="#00C2FF" stop-opacity="0.95"/>
+                    <stop offset="1" stop-color="#00C2FF" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="100" height="100" fill="#1A0E25"/>
+                <rect width="100" height="100" fill="url(#ig9a)"/>
+                <rect width="100" height="100" fill="url(#ig9b)"/>
+                <circle cx="50" cy="55" r="18" fill="#0A0A0A" opacity="0.85"/>
+                <rect width="100" height="100" filter="url(#grainSoft)" opacity="0.4"/>
+              </svg>
+              <div class="price-tag lime">FREE</div>
+              <div class="heart-ct"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 1.5k</div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Feed
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg>
+              Atlas
+            </div>
+            <div class="tab add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="tab active">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Saved
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+              Me
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────── 9. APIs ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 09</div>
+      <h2>Public <span class="it">APIs</span></h2>
+      <p class="lead">전시·공연·사진까지 — 무료 공공 API 한 번 정리. 다 인증키만 받으면 끝.</p>
+    </div>
+
+    <div class="api-list">
+      <div class="api-row featured">
+        <div class="api-no">01</div>
+        <div>
+          <div class="api-name">한국문화정보원 <span class="it">공연전시정보</span></div>
+          <div class="api-host">api.kcisa.kr · data.go.kr</div>
+          <div class="api-desc">전국 전시·공연 통합. 행사명·기간·장소·입장료 + <strong style="color:var(--lime);">대표 이미지(IMG_URL)</strong> 모두 제공. 0원의 품격 핵심 데이터셋.</div>
+          <div class="api-tags">
+            <span class="tag lime">📷 사진 ✓</span>
+            <span class="tag outline">전시</span>
+            <span class="tag outline">공연</span>
+            <span class="tag outline">JSON</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>API key</div>
+      </div>
+
+      <div class="api-row">
+        <div class="api-no">02</div>
+        <div>
+          <div class="api-name">KOPIS <span class="it">공연예술통합전산망</span></div>
+          <div class="api-host">www.kopis.or.kr/openApi</div>
+          <div class="api-desc">예술경영지원센터 운영. 콘서트·연극·뮤지컬·무용 + <strong>포스터 이미지</strong> + 박스오피스 랭킹. "지금 핫한" 추천 알고리즘에 유용.</div>
+          <div class="api-tags">
+            <span class="tag lime">포스터 ✓</span>
+            <span class="tag violet">랭킹</span>
+            <span class="tag outline">XML</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>API key</div>
+      </div>
+
+      <div class="api-row">
+        <div class="api-no">03</div>
+        <div>
+          <div class="api-name">TourAPI 4.0 <span class="it">한국관광공사</span></div>
+          <div class="api-host">apis.data.go.kr/B551011/KorService2</div>
+          <div class="api-desc">관광지·문화시설·축제·공연행사 통합. <strong>firstimage</strong>로 고화질 이미지. 위치 기반 반경 검색이 강력해서 "내 주변" 기능에 최적.</div>
+          <div class="api-tags">
+            <span class="tag lime">고화질 ✓</span>
+            <span class="tag violet">위치 검색</span>
+            <span class="tag outline">축제</span>
+            <span class="tag outline">한·영·중·일</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>API key</div>
+      </div>
+
+      <div class="api-row">
+        <div class="api-no">04</div>
+        <div>
+          <div class="api-name">서울 <span class="it">열린데이터광장</span> 문화행사</div>
+          <div class="api-host">data.seoul.go.kr · culturalEventInfo</div>
+          <div class="api-desc">서울시 직접 운영. 구청·시립 미술관 행사로 깊고 정확. <strong>MAIN_IMG · 위경도 · 유/무료</strong> 다 있음. 서울 타겟이면 1순위.</div>
+          <div class="api-tags">
+            <span class="tag lime">사진 ✓</span>
+            <span class="tag violet">위경도 ✓</span>
+            <span class="tag violet">유/무료 ✓</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>API key</div>
+      </div>
+
+      <div class="api-row">
+        <div class="api-no">05</div>
+        <div>
+          <div class="api-name">문화공공데이터광장 <span class="it">박물관·미술관</span></div>
+          <div class="api-host">www.culture.go.kr/data</div>
+          <div class="api-desc">국립·시립·사립 박물관/미술관 시설 정보 + 소장품 이미지. "이 미술관에서 열리는 모든 무료 전시" 같은 뷰에 사용.</div>
+          <div class="api-tags">
+            <span class="tag lime">소장품 ✓</span>
+            <span class="tag outline">시설 정보</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>API key</div>
+      </div>
+
+      <div class="api-row">
+        <div class="api-no">06</div>
+        <div>
+          <div class="api-name">정보나루 <span class="it">도서관 행사</span></div>
+          <div class="api-host">data4library.kr · nl.go.kr</div>
+          <div class="api-desc">전국 공공도서관 낭독회·강연·북클럽. <strong style="color:var(--violet);">거의 100% 무료</strong>라서 컨셉과 가장 잘 맞음. 무료 풀 두께를 확 늘려줌.</div>
+          <div class="api-tags">
+            <span class="tag lime">100% FREE</span>
+            <span class="tag outline">낭독회</span>
+            <span class="tag outline">강연</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>API key</div>
+      </div>
+
+      <div class="api-row">
+        <div class="api-no">07</div>
+        <div>
+          <div class="api-name">Kakao / Naver Maps <span class="it">SDK</span></div>
+          <div class="api-host">developers.kakao.com · navermaps.github.io</div>
+          <div class="api-desc">행사 좌표 → 핀, 길찾기, 거리. 카카오 일 30만 회 무료, 네이버 길찾기 강함. 한국에선 구글보다 정확.</div>
+          <div class="api-tags">
+            <span class="tag violet">지도</span>
+            <span class="tag outline">길찾기</span>
+            <span class="tag outline">한국 한정</span>
+          </div>
+        </div>
+        <div class="api-side"><span class="free-mark">FREE</span>일 한도</div>
+      </div>
+    </div>
+
+    <h3 class="sub-h">Stack 추천</h3>
+    <div class="two-col">
+      <div>
+        <ul class="editorial-list">
+          <li><span class="it">메인 콘텐츠</span> — 한국문화정보원 + KOPIS</li>
+          <li><span class="it">사진 자동</span> — TourAPI <code style="color:var(--violet);font-family:var(--mono);font-size:12px;">firstimage</code></li>
+          <li><span class="it">서울 정밀</span> — 열린데이터광장</li>
+          <li><span class="it">무료 보강</span> — 정보나루</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="editorial-list">
+          <li><span class="it">지도</span> — Kakao Maps SDK</li>
+          <li><span class="it">캐싱</span> — 30분 동기화</li>
+          <li><span class="it">이미지</span> — Cloudflare Images CDN</li>
+          <li><span class="it">백엔드</span> — Supabase / Firebase</li>
+        </ul>
+      </div>
+    </div>
+
+<pre class="code"><span class="c">// TourAPI 5km 반경 무료 행사 + 사진 가져오기</span>
+<span class="k">async function</span> <span class="p">fetchNearbyFree</span>(<span class="p">lat</span>, <span class="p">lng</span>) {
+  <span class="k">const</span> <span class="p">url</span> = <span class="s">`https://apis.data.go.kr/B551011/KorService2/locationBasedList2`</span>;
+  <span class="k">const</span> <span class="p">params</span> = <span class="k">new</span> <span class="p">URLSearchParams</span>({
+    <span class="p">serviceKey</span>: <span class="p">process</span>.<span class="p">env</span>.<span class="p">TOUR_API_KEY</span>,
+    <span class="p">mapX</span>: <span class="p">lng</span>, <span class="p">mapY</span>: <span class="p">lat</span>, <span class="p">radius</span>: <span class="n">5000</span>,   <span class="c">// 5km</span>
+    <span class="p">contentTypeId</span>: <span class="n">15</span>,    <span class="c">// 축제/공연/행사</span>
+    <span class="p">numOfRows</span>: <span class="n">50</span>, <span class="p">_type</span>: <span class="s">'json'</span>,
+  });
+  <span class="k">const</span> <span class="p">res</span> = <span class="k">await</span> <span class="p">fetch</span>(<span class="s">`${url}?${params}`</span>);
+  <span class="k">const</span> <span class="p">data</span> = <span class="k">await</span> <span class="p">res</span>.<span class="p">json</span>();
+  <span class="k">return</span> <span class="p">data</span>.<span class="p">response</span>.<span class="p">body</span>.<span class="p">items</span>.<span class="p">item</span>
+    .<span class="p">filter</span>(<span class="p">x</span> =&gt; <span class="p">x</span>.<span class="p">firstimage</span>)              <span class="c">// 이미지 있는 것만</span>
+    .<span class="p">map</span>(<span class="p">x</span> =&gt; ({
+      <span class="p">id</span>: <span class="p">x</span>.<span class="p">contentid</span>,
+      <span class="p">title</span>: <span class="p">x</span>.<span class="p">title</span>,
+      <span class="p">image</span>: <span class="p">x</span>.<span class="p">firstimage</span>,                 <span class="c">// ← 사진</span>
+      <span class="p">distance</span>: <span class="p">x</span>.<span class="p">dist</span>,                   <span class="c">// 미터</span>
+      <span class="p">addr</span>: <span class="p">x</span>.<span class="p">addr1</span>,
+    }));
+}</pre>
+  </section>
+
+  <!-- ─────────── 10. Stickers ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 10</div>
+      <h2>Price <span class="it">Stickers</span></h2>
+      <p class="lead">색만 봐도 가격대 파악. 알약형 굵직한 스티커.</p>
+    </div>
+
+    <div class="cat-grid">
+      <div class="cat-card">
+        <div class="pp-big lime"><span class="blip"></span>FREE 0원</div>
+        <div class="info">
+          <div class="tt">무료</div>
+          <div class="dd">입장료 0원. 라임 그린 + 펄스 애니메이션. 가장 먼저 시선이 닿게.</div>
+          <div class="code">pp-lime · pulse</div>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="pp-big violet">UNDER ₩10K</div>
+        <div class="info">
+          <div class="tt">저렴</div>
+          <div class="dd">1만원 이하. 바이올렛으로 강조. 핵심 가격대.</div>
+          <div class="code">pp-violet</div>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="pp-big tang">D-2 임박</div>
+        <div class="info">
+          <div class="tt">임박 / 마감</div>
+          <div class="dd">D-2 이내 또는 잔여석 부족. 탱저린 컬러로 강한 환기.</div>
+          <div class="code">pp-tang</div>
+        </div>
+      </div>
+      <div class="cat-card">
+        <div class="pp-big ink">CLOSED</div>
+        <div class="info">
+          <div class="tt">마감</div>
+          <div class="dd">행사 종료. 잉크 블랙 + 카드 opacity 0.4로 비활성화.</div>
+          <div class="code">pp-ink · op 0.4</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 11. A11y ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 11</div>
+      <h2>A11y <span class="it">First</span></h2>
+      <p class="lead">힙해도 모두가 써야 한다. 색만으로는 절대 정보 전달 안 함.</p>
+    </div>
+
+    <div class="a11y-list">
+      <div class="a11y-item">
+        <div class="ico">A</div>
+        <div class="tt">색 + 텍스트 + 아이콘</div>
+        <div class="dd">무료/마감은 색상 + 단어 + 마크 3중 표시. 색맹 사용자 위해 필수.</div>
+      </div>
+      <div class="a11y-item">
+        <div class="ico">⊞</div>
+        <div class="tt">최소 44pt 터치</div>
+        <div class="dd">모든 버튼·아이콘·탭바는 44×44pt 이상 터치 영역.</div>
+      </div>
+      <div class="a11y-item">
+        <div class="ico">L</div>
+        <div class="tt">전체 라벨링</div>
+        <div class="dd">아이콘 버튼은 항상 accessibilityLabel — "저장하기", "길찾기", "공유".</div>
+      </div>
+      <div class="a11y-item">
+        <div class="ico">D</div>
+        <div class="tt">다크 모드 1급</div>
+        <div class="dd">야간 갤러리 모드. 라임 액센트는 다크에서 더 강하게 빛난다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 12. Tokens ─────────── -->
+  <section class="section dark">
+    <div class="section-head">
+      <div class="section-no">Section 12</div>
+      <h2>Code <span class="lime-glow">Tokens</span></h2>
+      <p class="lead">React Native 기준 theme.ts.</p>
+    </div>
+
+<pre class="code"><span class="k">export const</span> <span class="p">colors</span> = {
+  <span class="c">// — Acid · Signature</span>
+  <span class="p">lime</span>:     <span class="s">'#D4FF00'</span>,   <span class="c">// FREE</span>
+  <span class="p">violet</span>:   <span class="s">'#6E3FFF'</span>,   <span class="c">// brand / cheap</span>
+  <span class="p">pink</span>:     <span class="s">'#FF3D8B'</span>,   <span class="c">// save / love</span>
+  <span class="p">tang</span>:     <span class="s">'#FF5C28'</span>,   <span class="c">// urgent</span>
+  <span class="p">ice</span>:      <span class="s">'#00C2FF'</span>,   <span class="c">// info</span>
+
+  <span class="c">// — Mono</span>
+  <span class="p">ink</span>:      <span class="s">'#0A0A0A'</span>,
+  <span class="p">ink3</span>:     <span class="s">'#3D3D3D'</span>,
+  <span class="p">ink5</span>:     <span class="s">'#9A9A9A'</span>,
+  <span class="p">line</span>:     <span class="s">'#DCDAD4'</span>,
+  <span class="p">bg</span>:       <span class="s">'#ECEAE5'</span>,
+  <span class="p">card</span>:     <span class="s">'#FFFFFF'</span>,
+};
+
+<span class="k">export const</span> <span class="p">space</span>  = { <span class="p">xs</span>: <span class="n">4</span>, <span class="p">sm</span>: <span class="n">8</span>, <span class="p">md</span>: <span class="n">12</span>, <span class="p">lg</span>: <span class="n">16</span>, <span class="p">xl</span>: <span class="n">24</span>, <span class="p">xxl</span>: <span class="n">32</span> };
+<span class="k">export const</span> <span class="p">radius</span> = { <span class="p">none</span>: <span class="n">0</span>, <span class="p">sm</span>: <span class="n">8</span>, <span class="p">md</span>: <span class="n">14</span>, <span class="p">lg</span>: <span class="n">20</span>, <span class="p">pill</span>: <span class="n">999</span> };
+
+<span class="k">export const</span> <span class="p">type</span> = {
+  <span class="p">display</span>: <span class="s">'Pretendard, sans-serif'</span>,    <span class="c">// 800–900</span>
+  <span class="p">sans</span>:    <span class="s">'Pretendard, sans-serif'</span>,    <span class="c">// 400–700</span>
+  <span class="p">mono</span>:    <span class="s">'JetBrains Mono, monospace'</span>,
+};</pre>
+  </section>
+
+  <!-- ─────────── 13. Handoff ─────────── -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">Section 13</div>
+      <h2>Handoff <span class="it">Notes</span></h2>
+      <p class="lead">2주 MVP 가능. 핵심은 컬러 토큰 + PriceSticker + BigCard.</p>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3 class="sub-h">Must</h3>
+        <ul class="editorial-list">
+          <li><span class="it">theme.ts</span> — lime · violet · ink 토큰</li>
+          <li><span class="it">PriceSticker</span> — lime / violet / tang / ink 4종</li>
+          <li><span class="it">BigCard</span> — 사진 + 사이드 액션 + 좋아요/저장 카운트</li>
+          <li><span class="it">StoryRail</span> — 그라디언트 링 6칸</li>
+          <li><span class="it">DigestStickers</span> — 라임/바이올렛/잉크 3타입</li>
+          <li><span class="it">5탭 + 가운데 + 버튼</span> — 라임 띄움</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sub-h">Should</h3>
+        <ul class="editorial-list">
+          <li>위치 권한 온보딩 — 한 줄 카피</li>
+          <li>D-day 스티커 + 푸시</li>
+          <li>저장 인터랙션 — 하트 펑 애니</li>
+          <li>지도 + 핀 (라임 = 무료)</li>
+          <li>인증 카드 — "0원으로 다녀왔다"</li>
+          <li>다녀온 곳 통계 — "₩47K 아낀 돈"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pull-quote" style="margin-top:36px;">
+      <span class="em">FREE.</span><br/>
+      But <span class="vio">never cheap.</span>
+      <span class="cite">— design memo · fin</span>
+    </div>
+  </section>
+
+  <div class="footer-mark">
+    <span class="d">●</span> 0원의 품격 · v3.1 · 2026 <span class="d">●</span>
+  </div>
+
+</div>
+</body>
+</html>

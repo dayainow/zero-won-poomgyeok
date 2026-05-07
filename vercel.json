@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 60,
+      "regions": ["hnd1"]
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/refresh-libraries",
+      "schedule": "0 18 * * *"
+    }
+  ]
+}
