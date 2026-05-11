@@ -1,0 +1,2376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>0원의 품격 · UI/UX 화면 설계서</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #0A0A0A;
+    --bg-elev:    #141414;
+    --bg-raised:  #1F1F1F;
+    --bg-card:    #1A1A1A;
+    --bg-hover:   #2A2A2A;
+    --border:     #2E2E2E;
+    --border-sub: #1F1F1F;
+    --text:       #FFFFFF;
+    --text-2:     #B5B5B5;
+    --text-3:     #7A7A7A;
+    --text-4:     #4D4D4D;
+    --accent:     #D4FF00;
+    --accent-2:   #C5F500;
+    --on-accent:  #0A0A0A;
+    --violet:     #8B5CF6;
+    --pink:       #EC4899;
+    --orange:     #F97316;
+    --danger:     #FF5252;
+    --sans:  'Pretendard', -apple-system, sans-serif;
+    --mono:  'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 28px; }
+
+  /* ============= COVER ============= */
+  .cover {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 25% 30%, rgba(212,255,0,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 75%, rgba(139,92,246,0.18) 0%, transparent 55%),
+      var(--bg);
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 48px 0;
+  }
+  .cover::before {
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, transparent 0, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+    pointer-events: none;
+  }
+  .cover-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--text-3);
+    position: relative; z-index: 1;
+  }
+  .cover-mid {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    padding: 60px 0; position: relative; z-index: 1;
+  }
+  .cover-mid .label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 24px;
+  }
+  .cover-mid h1 {
+    font-size: clamp(56px, 9vw, 132px); font-weight: 800; line-height: 0.95;
+    letter-spacing: -0.04em; margin-bottom: 36px;
+  }
+  .cover-mid h1 .zero { color: var(--accent); }
+  .cover-mid h1 .light { font-weight: 400; }
+  .cover-mid .doc-title {
+    font-size: 24px; font-weight: 600; letter-spacing: -0.01em;
+    color: var(--text-2); margin-bottom: 16px;
+  }
+  .cover-mid .meta {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
+    color: var(--text-3); text-transform: uppercase;
+  }
+  .cover-toc {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    position: relative; z-index: 1;
+  }
+  .toc-item {
+    padding: 20px; background: rgba(20,20,20,0.6); backdrop-filter: blur(8px);
+    border: 1px solid var(--border-sub); border-radius: 10px;
+  }
+  .toc-num {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.18em; margin-bottom: 6px;
+  }
+  .toc-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .toc-desc { font-size: 11px; color: var(--text-3); }
+
+  /* ============= CHAPTERS ============= */
+  section.chapter { padding: 100px 0; border-top: 1px solid var(--border); }
+  .chapter-head { margin-bottom: 56px; }
+  .chapter-num {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .chapter-num::before { content: ""; width: 36px; height: 1px; background: var(--accent); }
+  .chapter-h2 {
+    font-size: clamp(32px, 4.5vw, 56px); font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.025em; margin-bottom: 18px;
+  }
+  .chapter-h2 .em { color: var(--accent); }
+  .chapter-lead {
+    font-size: 17px; color: var(--text-2); max-width: 720px; line-height: 1.6;
+  }
+
+  /* ============= SCREEN PAGE ============= */
+  .screen-page { margin-bottom: 80px; padding-bottom: 80px; border-bottom: 1px solid var(--border); }
+  .screen-page:last-child { border-bottom: 0; }
+  .screen-head {
+    display: flex; align-items: baseline; gap: 18px; margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .screen-head .num {
+    font-family: var(--mono); font-size: 14px; letter-spacing: 0.16em;
+    color: var(--accent); padding: 4px 10px; border: 1px solid var(--accent);
+    border-radius: 4px;
+  }
+  .screen-head h3 {
+    font-size: 32px; font-weight: 800; letter-spacing: -0.02em;
+  }
+  .screen-head .en {
+    font-family: var(--mono); font-size: 13px; color: var(--text-3);
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .screen-purpose {
+    font-size: 16px; color: var(--text-2); max-width: 720px; line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  .screen-layout {
+    display: grid; grid-template-columns: 380px 1fr; gap: 48px;
+    align-items: flex-start;
+  }
+  .screen-mockup-wrap { position: sticky; top: 24px; }
+  .screen-mockup {
+    width: 100%;
+    aspect-ratio: 375 / 812;
+    background: var(--bg);
+    border-radius: 36px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 30px 80px rgba(0,0,0,0.5),
+      0 0 0 8px #0F0F0F;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .mockup-caption {
+    margin-top: 18px; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3);
+    text-align: center;
+  }
+  .mockup-caption em {
+    font-family: var(--sans); font-style: normal; font-weight: 600;
+    text-transform: none; letter-spacing: 0; color: var(--text);
+    margin-left: 8px;
+  }
+
+  /* ============= ANNOTATIONS ============= */
+  .annotations {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .anno-section {
+    padding: 24px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 12px;
+  }
+  .anno-section h4 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border-sub);
+  }
+  .anno-list { display: flex; flex-direction: column; gap: 12px; }
+  .anno-row {
+    display: grid; grid-template-columns: 28px 1fr; gap: 14px;
+    align-items: flex-start;
+  }
+  .anno-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    display: grid; place-items: center;
+    margin-top: 1px;
+  }
+  .anno-row .body { font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+  .anno-row .body strong { color: var(--text); font-weight: 700; }
+  .anno-row .body code {
+    font-family: var(--mono); font-size: 11.5px; color: var(--accent);
+    background: var(--bg-raised); padding: 1px 6px; border-radius: 3px;
+  }
+
+  .spec-table { width: 100%; border-collapse: collapse; }
+  .spec-table th, .spec-table td {
+    padding: 10px 0; text-align: left; border-bottom: 1px solid var(--border-sub);
+    font-size: 13px;
+  }
+  .spec-table th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em;
+    color: var(--text-3); text-transform: uppercase; font-weight: 500;
+  }
+  .spec-table td { color: var(--text-2); }
+  .spec-table td.token { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+  .spec-table tr:last-child td, .spec-table tr:last-child th { border-bottom: 0; }
+
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .state-card {
+    padding: 14px; background: var(--bg-raised); border-radius: 8px;
+    border-left: 3px solid var(--accent);
+  }
+  .state-card.empty { border-left-color: var(--violet); }
+  .state-card.error { border-left-color: var(--danger); }
+  .state-card .lb {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;
+  }
+  .state-card .tt { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .state-card .dd { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+
+  /* ===== UNIVERSAL MOCKUP COMPONENTS ===== */
+  .status-bar {
+    height: 38px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 22px;
+    font-size: 12.5px; font-weight: 600; color: var(--text);
+    flex-shrink: 0;
+  }
+  .status-bar .right { display: flex; gap: 5px; align-items: center; font-size: 11px; }
+
+  .nav-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 18px 14px; flex-shrink: 0;
+  }
+  .nav-bar .brand {
+    font-size: 19px; font-weight: 800; letter-spacing: -0.01em;
+  }
+  .nav-bar .brand .z { color: var(--accent); }
+  .nav-bar .actions { display: flex; gap: 12px; }
+  .ico-btn {
+    width: 28px; height: 28px; display: grid; place-items: center;
+    color: var(--text);
+  }
+  .ico-btn svg { width: 18px; height: 18px; stroke-width: 1.6; }
+  .nav-bar .crumb { font-size: 16px; font-weight: 700; }
+  .nav-bar .crumb-sub { font-size: 12px; color: var(--text-3); font-family: var(--mono); letter-spacing: 0.1em; }
+
+  .page-sub {
+    padding: 0 18px 14px;
+    font-size: 13px; color: var(--text-2); line-height: 1.5;
+  }
+
+  /* ============= FEED CATEGORIES ============= */
+  .cat-row {
+    display: flex; gap: 10px; padding: 8px 18px 16px;
+    overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+  }
+  .cat-row::-webkit-scrollbar { display: none; }
+  .cat-pill {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    flex-shrink: 0; min-width: 48px;
+  }
+  .cat-pill .ic {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--bg-raised);
+    display: grid; place-items: center; color: var(--text-2);
+  }
+  .cat-pill.active .ic { background: var(--accent); color: var(--on-accent); }
+  .cat-pill .ic svg { width: 20px; height: 20px; stroke-width: 1.8; }
+  .cat-pill .lb {
+    font-size: 11px; color: var(--text-3); font-weight: 500;
+  }
+  .cat-pill.active .lb { color: var(--text); font-weight: 700; }
+
+  .scroll-area {
+    flex: 1; overflow-y: auto; padding: 0 18px 16px;
+  }
+
+  .section-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0 12px;
+  }
+  .section-head .lb { font-size: 16px; font-weight: 700; }
+  .section-head .more { font-size: 11px; color: var(--text-3); font-family: var(--mono); letter-spacing: 0.1em; }
+
+  .feature-card {
+    border-radius: 14px; overflow: hidden; position: relative;
+    aspect-ratio: 16/10;
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(212,255,0,0.15) 0%, transparent 55%),
+      linear-gradient(135deg, #444444 0%, #1A1A1A 100%);
+    margin-bottom: 14px;
+  }
+  .feature-card .free-tag {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 10.5px; font-weight: 800;
+    padding: 4px 8px; border-radius: 4px;
+  }
+  .feature-card .x-btn {
+    position: absolute; top: 12px; right: 12px;
+    width: 26px; height: 26px;
+    background: rgba(0,0,0,0.6);
+    color: var(--text);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 14px;
+  }
+  .feature-card .meta {
+    position: absolute; bottom: 12px; left: 14px; right: 14px;
+    color: var(--text);
+  }
+  .feature-card .ttl {
+    font-size: 14px; font-weight: 800; line-height: 1.2;
+    margin-bottom: 4px; letter-spacing: -0.01em;
+  }
+  .feature-card .sub {
+    font-size: 10.5px; color: var(--text-2);
+  }
+  .feature-card .heart {
+    position: absolute; bottom: 12px; right: 14px;
+    color: var(--text); display: flex; align-items: center; gap: 3px;
+    font-size: 10.5px;
+  }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--bg-card); border-radius: 12px;
+    padding: 12px;
+    aspect-ratio: 1;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .stat-card.high { background: var(--accent); color: var(--on-accent); }
+  .stat-card .lb { font-size: 10px; opacity: 0.7; font-weight: 500; }
+  .stat-card.high .lb { opacity: 0.8; }
+  .stat-card .vl {
+    font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -0.02em;
+  }
+  .stat-card .cp { font-size: 9.5px; opacity: 0.6; font-weight: 500; }
+  .stat-card.high .cp { opacity: 0.7; }
+
+  .nearby-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .nearby-card {
+    aspect-ratio: 1;
+    border-radius: 8px; overflow: hidden;
+    position: relative;
+    background: linear-gradient(135deg, #3a3a3a, #1a1a1a);
+  }
+  .nearby-card.v2 { background: linear-gradient(135deg, #2a3a2a, #0F0F0F); }
+  .nearby-card.v3 { background: linear-gradient(135deg, #2A2530, #0F0F0F); }
+  .nearby-card .free-mini {
+    position: absolute; top: 6px; left: 6px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 8.5px; font-weight: 800; padding: 2px 6px; border-radius: 3px;
+  }
+  .nearby-card .meta {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 6px 8px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85));
+  }
+  .nearby-card .ttl {
+    font-size: 10px; font-weight: 700; line-height: 1.2; color: var(--text);
+    margin-bottom: 2px;
+  }
+  .nearby-card .sub {
+    font-size: 8px; color: var(--text-2); display: flex; align-items: center; gap: 3px;
+  }
+
+  /* ============= TAB BAR ============= */
+  .tabbar {
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 8px 0 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--text-3);
+  }
+  .tab svg { width: 19px; height: 19px; stroke-width: 1.8; }
+  .tab .lb { font-size: 10px; font-weight: 600; }
+  .tab.active { color: var(--accent); }
+  .tab.fab-slot { visibility: hidden; }
+  .fab {
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    display: grid; place-items: center;
+    box-shadow: 0 4px 12px rgba(212,255,0,0.3);
+  }
+  .fab svg { width: 22px; height: 22px; stroke-width: 2.4; }
+
+  /* ============= DETAIL ============= */
+  .detail-hero {
+    aspect-ratio: 4/3; flex-shrink: 0;
+    background:
+      radial-gradient(circle at 50% 35%, rgba(245,235,200,0.4) 0%, transparent 30%),
+      radial-gradient(ellipse at 50% 65%, #1a1a1a 30%, transparent 70%),
+      linear-gradient(180deg, #2a2a2a, #0F0F0F);
+    position: relative;
+  }
+  .detail-hero .top-bar {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between;
+  }
+  .detail-hero .top-bar .pill {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+    display: grid; place-items: center; color: var(--text);
+  }
+  .detail-hero .right { display: flex; gap: 8px; }
+  .detail-hero .pill svg { width: 16px; height: 16px; stroke-width: 1.6; }
+
+  .detail-info {
+    padding: 16px 18px;
+  }
+  .detail-info .free-tag {
+    background: var(--accent); color: var(--on-accent);
+    font-size: 11px; font-weight: 800;
+    padding: 4px 10px; border-radius: 4px;
+    display: inline-block; margin-bottom: 12px;
+  }
+  .detail-info h1 {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.015em;
+    line-height: 1.2; margin-bottom: 6px;
+  }
+  .detail-info .sub {
+    font-size: 12px; color: var(--text-2); margin-bottom: 10px;
+  }
+  .detail-info .rating {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text-2);
+  }
+  .detail-info .rating .star { color: var(--accent); }
+  .detail-info .rating .pipe { color: var(--text-4); }
+
+  .detail-grid {
+    margin: 14px 18px;
+    background: var(--bg-card); border-radius: 12px;
+    padding: 14px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+  .detail-grid .item { text-align: left; }
+  .detail-grid .item + .item { border-left: 1px solid var(--border); padding-left: 10px; }
+  .detail-grid .item .ic { color: var(--accent); font-size: 12px; margin-bottom: 4px; }
+  .detail-grid .item .vl { font-size: 12px; font-weight: 700; line-height: 1.3; }
+  .detail-grid .item .lb { font-size: 9px; color: var(--text-3); margin-top: 3px; }
+
+  .detail-desc {
+    padding: 0 18px 14px;
+    font-size: 12px; line-height: 1.6; color: var(--text-2);
+  }
+  .detail-tags {
+    display: flex; gap: 8px; padding: 0 18px 14px;
+    flex-wrap: wrap;
+  }
+  .tag-item { font-size: 10.5px; color: var(--accent); font-weight: 600; }
+
+  .detail-map {
+    margin: 0 18px 14px;
+    background: var(--bg-card); border-radius: 12px;
+    overflow: hidden;
+  }
+  .detail-map .addr-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .detail-map .addr-row .addr { color: var(--text-2); }
+  .detail-map .map-area {
+    height: 100px; background:
+      repeating-linear-gradient(45deg, #2a2a2a 0 4px, #1a1a1a 4px 8px);
+    position: relative;
+  }
+  .detail-map .pin {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #fff;
+    display: grid; place-items: center; color: var(--on-accent); font-size: 11px;
+  }
+  .detail-map .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+  .detail-map .info-row .nav {
+    background: var(--bg-raised); padding: 5px 10px; border-radius: 4px;
+    color: var(--text); font-weight: 600;
+  }
+
+  .detail-actions {
+    display: grid; grid-template-columns: 1fr 2fr; gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-outline {
+    background: transparent; color: var(--text);
+    padding: 14px; border: 1px solid var(--border);
+    border-radius: 12px; text-align: center;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary {
+    background: var(--accent); color: var(--on-accent);
+    padding: 14px; border-radius: 12px;
+    text-align: center;
+    font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  /* ============= MAP ============= */
+  .map-screen {
+    background: var(--bg-elev); flex: 1; position: relative;
+  }
+  .map-search {
+    margin: 8px 18px;
+    background: var(--bg-card); border-radius: 8px;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-3);
+  }
+  .map-search svg { width: 16px; height: 16px; }
+  .map-cats {
+    display: flex; gap: 6px; padding: 0 18px 12px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .map-cats::-webkit-scrollbar { display: none; }
+  .map-cat-pill {
+    padding: 7px 14px; border-radius: 999px;
+    background: var(--bg-card);
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .map-cat-pill.active {
+    background: var(--accent); color: var(--on-accent);
+  }
+  .map-canvas {
+    flex: 1; background:
+      radial-gradient(circle at 30% 40%, #1F1F1F 0%, transparent 30%),
+      radial-gradient(circle at 70% 60%, #1A1A1A 0%, transparent 30%),
+      linear-gradient(180deg, #0F0F0F, #0A0A0A);
+    position: relative; overflow: hidden;
+  }
+  .map-canvas::before {
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0 30px, rgba(255,255,255,0.02) 30px 31px),
+                repeating-linear-gradient(90deg, transparent 0 30px, rgba(255,255,255,0.02) 30px 31px);
+  }
+  .map-pin {
+    position: absolute;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: linear-gradient(135deg, #444, #222);
+    overflow: hidden;
+  }
+  .map-pin.violet { border-color: var(--violet); }
+  .map-pin.pink { border-color: var(--pink); }
+  .map-pin.active {
+    border-width: 3px; transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(212,255,0,0.2);
+  }
+  .map-pin::before {
+    content: ""; position: absolute; bottom: -6px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px; height: 8px;
+    background: var(--accent);
+  }
+  .map-pin.violet::before { background: var(--violet); }
+  .map-pin.pink::before { background: var(--pink); }
+
+  .map-bottom-card {
+    margin: 0 14px 12px;
+    background: var(--bg-card); border-radius: 14px;
+    padding: 12px;
+    display: flex; gap: 12px; align-items: center;
+    border: 1px solid var(--border);
+  }
+  .map-bottom-card .thumb {
+    width: 60px; height: 60px; border-radius: 8px;
+    background: linear-gradient(135deg, #3a3a3a, #1a1a1a);
+    flex-shrink: 0;
+  }
+  .map-bottom-card .info { flex: 1; }
+  .map-bottom-card .ttl { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .map-bottom-card .sub { font-size: 10px; color: var(--text-3); margin-bottom: 2px; }
+  .map-bottom-card .time { font-size: 10px; color: var(--text-2); }
+  .map-bottom-card .heart { color: var(--text-3); font-size: 16px; }
+
+  /* ============= SEARCH ============= */
+  .search-input-wrap {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 18px 14px;
+  }
+  .search-input {
+    flex: 1; background: var(--bg-card); border-radius: 8px;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-3);
+  }
+  .search-input svg { width: 14px; height: 14px; color: var(--text-3); }
+  .search-cancel { font-size: 12px; color: var(--text-2); }
+
+  .search-section { padding: 16px 18px 0; }
+  .search-section-h {
+    font-size: 13px; font-weight: 700; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .search-section-h .clear {
+    font-size: 10.5px; color: var(--text-3); font-weight: 500;
+  }
+  .search-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .search-chip {
+    padding: 7px 14px; background: var(--bg-card);
+    border-radius: 999px;
+    font-size: 11.5px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .search-chip .x { color: var(--text-3); font-size: 9px; }
+
+  .search-list { display: flex; flex-direction: column; }
+  .search-row {
+    padding: 12px 0;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-sub);
+  }
+  .search-row svg { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; }
+  .search-row .term { font-size: 13px; color: var(--text); }
+
+  /* ============= FILTER ============= */
+  .filter-body { flex: 1; overflow-y: auto; padding: 8px 18px 0; }
+  .filter-section { margin-bottom: 24px; }
+  .filter-section h4 {
+    font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    display: flex; justify-content: space-between;
+  }
+  .filter-section h4 .val { color: var(--accent); font-family: var(--mono); font-size: 11px; }
+  .filter-slider {
+    height: 4px; background: var(--bg-raised); border-radius: 2px; position: relative;
+    margin-bottom: 14px;
+  }
+  .filter-slider::after {
+    content: ""; position: absolute; left: 0; top: 0; height: 100%;
+    width: 65%; background: var(--accent); border-radius: 2px;
+  }
+  .filter-slider .knob {
+    position: absolute; left: 65%; top: 50%; transform: translate(-50%, -50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(212,255,0,0.2);
+  }
+  .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filter-pill {
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--bg-card);
+    font-size: 11.5px; font-weight: 600;
+    color: var(--text-2);
+  }
+  .filter-pill.active {
+    background: var(--accent); color: var(--on-accent);
+  }
+  .filter-cta {
+    margin: 0 18px 14px;
+    padding: 16px;
+    background: var(--accent); color: var(--on-accent);
+    border-radius: 14px;
+    text-align: center;
+    font-size: 14px; font-weight: 800;
+  }
+
+  /* ============= SAVED ============= */
+  .saved-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 4px 0;
+  }
+  .saved-card {
+    border-radius: 12px; overflow: hidden;
+    background: var(--bg-card);
+  }
+  .saved-card .img {
+    aspect-ratio: 4/3;
+    background: linear-gradient(135deg, #3a3a3a, #1a1a1a);
+    position: relative;
+  }
+  .saved-card .img.v2 { background: linear-gradient(135deg, #2A2530, #0F0F0F); }
+  .saved-card .img.v3 { background: linear-gradient(135deg, #2a3a2a, #0F0F0F); }
+  .saved-card .free-mini {
+    position: absolute; top: 8px; left: 8px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 3px;
+  }
+  .saved-card .meta {
+    padding: 10px 12px;
+  }
+  .saved-card .ttl {
+    font-size: 12.5px; font-weight: 700; line-height: 1.3; margin-bottom: 3px;
+  }
+  .saved-card .sub-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 9.5px; color: var(--text-3);
+  }
+  .saved-card .heart {
+    color: var(--text-3); display: flex; align-items: center; gap: 3px;
+  }
+
+  /* ============= ITINERARY ============= */
+  .itin-tabs {
+    display: flex; gap: 18px; padding: 12px 18px 0;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .itin-tab {
+    padding-bottom: 12px;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-3);
+    display: flex; align-items: center; gap: 4px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .itin-tab .ct { font-size: 10px; }
+  .itin-tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .itin-day {
+    padding: 16px 18px 8px;
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    font-family: var(--mono); letter-spacing: 0.06em;
+  }
+  .itin-event {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-sub);
+    position: relative;
+  }
+  .itin-event .badge {
+    position: absolute; right: 18px; top: 14px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 3px;
+  }
+  .itin-event .badge.free { background: var(--bg-raised); color: var(--accent); }
+  .itin-event .ttl { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .itin-event .sub { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+  .itin-event .time { font-size: 11px; color: var(--text-2); font-family: var(--mono); }
+
+  /* ============= MY / PROFILE ============= */
+  .my-prof {
+    padding: 8px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .my-prof .avatar-row {
+    display: flex; gap: 14px; align-items: center; margin-bottom: 16px;
+  }
+  .my-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, var(--accent) 0%, transparent 50%),
+      linear-gradient(135deg, var(--violet), var(--pink));
+  }
+  .my-prof .name {
+    font-size: 17px; font-weight: 700; margin-bottom: 4px;
+  }
+  .my-prof .edit {
+    font-size: 11px; color: var(--text-3);
+    padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
+    display: inline-block;
+  }
+  .my-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .my-stat-cell {
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .my-stat-cell:last-child { border-right: 0; }
+  .my-stat-cell .num {
+    font-size: 22px; font-weight: 800; color: var(--accent);
+    line-height: 1; margin-bottom: 4px;
+  }
+  .my-stat-cell .lb { font-size: 10px; color: var(--text-3); }
+
+  .my-menu { padding: 8px 0; }
+  .my-section-h {
+    font-size: 10px; font-family: var(--mono); letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-3);
+    padding: 12px 18px 6px;
+  }
+  .menu-row {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-sub);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .menu-row .left {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px;
+  }
+  .menu-row .left svg { width: 16px; height: 16px; color: var(--text-2); }
+  .menu-row .right {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--text-3); font-size: 11px;
+  }
+  .menu-row .right svg { width: 12px; height: 12px; }
+  .menu-row .switch {
+    width: 36px; height: 20px; border-radius: 999px;
+    background: var(--bg-raised); position: relative;
+  }
+  .menu-row .switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%; background: var(--text-3);
+  }
+  .menu-row .switch.on { background: var(--accent); }
+  .menu-row .switch.on::after { left: 18px; background: var(--on-accent); }
+
+  /* ============= ONBOARDING ============= */
+  .onb-screen {
+    flex: 1;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(212,255,0,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.5) 0%, transparent 60%),
+      radial-gradient(ellipse at 60% 70%, rgba(236,72,153,0.3) 0%, transparent 60%),
+      linear-gradient(180deg, #0a0a0a, #000);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 40px 28px 32px;
+    position: relative;
+  }
+  .onb-screen::before {
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, transparent 0, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+  }
+  .onb-content { position: relative; z-index: 1; }
+  .onb-content h1 {
+    font-size: 32px; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em;
+  }
+  .onb-content h1 .em { color: var(--accent); }
+  .onb-content .deck {
+    margin-top: 24px; font-size: 13px; color: var(--text-2); line-height: 1.6;
+  }
+  .onb-bot {
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative; z-index: 1;
+  }
+  .onb-dots { display: flex; gap: 6px; }
+  .onb-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3);
+  }
+  .onb-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+  .onb-arrow {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    display: grid; place-items: center;
+  }
+  .onb-arrow svg { width: 20px; height: 20px; stroke-width: 2.4; }
+
+  /* ============= EMPTY STATE ============= */
+  .empty-state {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 30px;
+    text-align: center;
+  }
+  .empty-illust {
+    width: 140px; height: 140px;
+    background: var(--bg-card); border-radius: 14px;
+    margin-bottom: 22px;
+    position: relative;
+    transform: rotate(-8deg);
+  }
+  .empty-illust::after {
+    content: ""; position: absolute; top: 20px; right: -10px;
+    width: 32px; height: 44px;
+    background: var(--accent);
+    border-radius: 4px;
+    transform: rotate(8deg);
+    box-shadow: 0 4px 12px rgba(212,255,0,0.3);
+  }
+  .empty-illust::before {
+    content: ""; position: absolute; inset: 14px;
+    border: 1.5px dashed var(--text-3);
+    border-radius: 8px;
+  }
+  .empty-state h2 {
+    font-size: 17px; font-weight: 800; margin-bottom: 8px;
+  }
+  .empty-state p {
+    font-size: 12px; color: var(--text-3); line-height: 1.6;
+    margin-bottom: 22px; max-width: 220px;
+  }
+  .empty-cta {
+    background: var(--accent); color: var(--on-accent);
+    padding: 12px 28px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 800;
+  }
+
+  /* ============= INTERACTION DOTS ============= */
+  .interactions { display: flex; flex-direction: column; gap: 10px; }
+  .interaction {
+    padding: 10px 14px; background: var(--bg-raised); border-radius: 8px;
+    display: grid; grid-template-columns: 60px 1fr; gap: 12px;
+    align-items: center;
+  }
+  .interaction .ev {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    padding: 3px 6px; border: 1px solid var(--accent); border-radius: 3px;
+    text-align: center;
+  }
+  .interaction .desc { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+
+  /* ============= DESIGN SYSTEM ============= */
+  .ds-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .ds-card {
+    padding: 28px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 12px;
+  }
+  .ds-card h3 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+  }
+  .ds-colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .ds-swatch { border-radius: 8px; overflow: hidden; }
+  .ds-swatch .chip { aspect-ratio: 1; }
+  .ds-swatch .meta { padding: 8px; background: var(--bg-raised); }
+  .ds-swatch .name { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+  .ds-swatch .hex { font-family: var(--mono); font-size: 9px; color: var(--text-3); }
+
+  /* ============= COLOPHON ============= */
+  footer {
+    padding: 80px 0 60px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+  footer .big {
+    font-size: clamp(36px, 5vw, 60px); font-weight: 800;
+    letter-spacing: -0.025em; margin-bottom: 18px; line-height: 1.05;
+  }
+  footer .big .em { color: var(--accent); }
+  footer .meta {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-3);
+  }
+
+  /* ============= RESPONSIVE ============= */
+  @media (max-width: 980px) {
+    .screen-layout { grid-template-columns: 1fr; gap: 24px; }
+    .screen-mockup-wrap { position: static; max-width: 380px; margin: 0 auto; }
+    .cover-toc { grid-template-columns: 1fr 1fr; }
+    .ds-grid { grid-template-columns: 1fr; }
+    .state-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- COVER                                       -->
+<!-- ============================================ -->
+<section class="cover">
+  <div class="wrap cover-top">
+    <span>POOMGYEOK · Screen Design Document</span>
+    <div style="display:flex;gap:24px;">
+      <span>v1.0 · 2026.05</span>
+      <span>12 SCREENS</span>
+    </div>
+  </div>
+
+  <div class="wrap cover-mid">
+    <div class="label">UI / UX 화면 설계서</div>
+    <h1>
+      <span class="zero">0</span>원의<br/>품격<span class="light">.</span>
+    </h1>
+    <p class="doc-title">Screen Design Specification — 디자이너 시안 기반 풀 핸드오프</p>
+    <p class="meta">12 Screens · 4 Flows · 8 Components · Dark Theme</p>
+  </div>
+
+  <div class="wrap cover-toc">
+    <div class="toc-item"><div class="toc-num">CH 01</div><div class="toc-title">Foundation</div><div class="toc-desc">컬러, 타이포, 토큰</div></div>
+    <div class="toc-item"><div class="toc-num">CH 02</div><div class="toc-title">Navigation</div><div class="toc-desc">5탭 + FAB 구조</div></div>
+    <div class="toc-item"><div class="toc-num">CH 03</div><div class="toc-title">Screens</div><div class="toc-desc">12개 화면 풀 명세</div></div>
+    <div class="toc-item"><div class="toc-num">CH 04</div><div class="toc-title">Components</div><div class="toc-desc">재사용 컴포넌트</div></div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 01 — FOUNDATION                             -->
+<!-- ============================================ -->
+<section class="chapter">
+  <div class="wrap">
+    <div class="chapter-head">
+      <div class="chapter-num">Chapter 01 — Foundation</div>
+      <h2 class="chapter-h2">디자인 <span class="em">토큰</span>.</h2>
+      <p class="chapter-lead">
+        모든 화면이 따르는 단일 디자인 언어. 컬러는 다섯 그룹, 타이포는 Pretendard 단일 패밀리, 간격은 4pt 기반.
+      </p>
+    </div>
+
+    <div class="ds-grid">
+      <div class="ds-card">
+        <h3>Surface</h3>
+        <div class="ds-colors">
+          <div class="ds-swatch"><div class="chip" style="background:#0A0A0A"></div><div class="meta"><div class="name">bg</div><div class="hex">#0A0A0A</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#141414"></div><div class="meta"><div class="name">elev</div><div class="hex">#141414</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#1A1A1A"></div><div class="meta"><div class="name">card</div><div class="hex">#1A1A1A</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#1F1F1F"></div><div class="meta"><div class="name">raised</div><div class="hex">#1F1F1F</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#2E2E2E"></div><div class="meta"><div class="name">border</div><div class="hex">#2E2E2E</div></div></div>
+        </div>
+        <h3 style="margin-top:24px;">Text</h3>
+        <div class="ds-colors">
+          <div class="ds-swatch"><div class="chip" style="background:#FFFFFF"></div><div class="meta"><div class="name">text</div><div class="hex">#FFFFFF</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#B5B5B5"></div><div class="meta"><div class="name">text-2</div><div class="hex">#B5B5B5</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#7A7A7A"></div><div class="meta"><div class="name">text-3</div><div class="hex">#7A7A7A</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#4D4D4D"></div><div class="meta"><div class="name">text-4</div><div class="hex">#4D4D4D</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#FF5252"></div><div class="meta"><div class="name">danger</div><div class="hex">#FF5252</div></div></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <h3>Brand Accent</h3>
+        <div class="ds-colors">
+          <div class="ds-swatch"><div class="chip" style="background:#D4FF00"></div><div class="meta"><div class="name">accent</div><div class="hex">#D4FF00</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#C5F500"></div><div class="meta"><div class="name">hover</div><div class="hex">#C5F500</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#0A0A0A"></div><div class="meta"><div class="name">on-accent</div><div class="hex">#0A0A0A</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#9BBF00"></div><div class="meta"><div class="name">muted</div><div class="hex">#9BBF00</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#FFFFFF;color:#0A0A0A;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;">SOLO</div><div class="meta"><div class="name">사용</div><div class="hex">강조 1곳</div></div></div>
+        </div>
+        <h3 style="margin-top:24px;">Secondary (Map Pins)</h3>
+        <div class="ds-colors" style="grid-template-columns: repeat(3,1fr);">
+          <div class="ds-swatch"><div class="chip" style="background:#D4FF00"></div><div class="meta"><div class="name">전시·공간</div><div class="hex">accent</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#8B5CF6"></div><div class="meta"><div class="name">공연·행사</div><div class="hex">violet</div></div></div>
+          <div class="ds-swatch"><div class="chip" style="background:#EC4899"></div><div class="meta"><div class="name">클래스</div><div class="hex">pink</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ds-grid" style="margin-top: 18px;">
+      <div class="ds-card">
+        <h3>Typography · Pretendard</h3>
+        <table class="spec-table">
+          <tr><th>Token</th><th>Spec</th><th style="text-align:right;">Sample</th></tr>
+          <tr><td class="token">display</td><td>28 / 800 / -0.5</td><td style="text-align:right;font-size:18px;font-weight:800;">0원의 품격</td></tr>
+          <tr><td class="token">h1</td><td>24 / 800 / -0.4</td><td style="text-align:right;font-size:16px;font-weight:800;">MMCA 현대차</td></tr>
+          <tr><td class="token">h2</td><td>18 / 700 / -0.2</td><td style="text-align:right;font-size:14px;font-weight:700;">오늘의 추천</td></tr>
+          <tr><td class="token">h3</td><td>16 / 700</td><td style="text-align:right;font-size:13px;font-weight:700;">행사 카드 제목</td></tr>
+          <tr><td class="token">body</td><td>14 / 400 / 1.6</td><td style="text-align:right;font-size:12px;">본문 텍스트</td></tr>
+          <tr><td class="token">caption</td><td>12 / 500</td><td style="text-align:right;font-size:11px;color:var(--text-3);">메타데이터</td></tr>
+          <tr><td class="token">tag</td><td>11 / 800</td><td style="text-align:right;"><span style="font-size:10px;font-weight:800;color:#0A0A0A;background:#D4FF00;padding:2px 6px;border-radius:3px;">무료</span></td></tr>
+          <tr><td class="token">eyebrow</td><td>11 / 500 / 0.18em</td><td style="text-align:right;font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.18em;">VALUE 01</td></tr>
+        </table>
+      </div>
+
+      <div class="ds-card">
+        <h3>Spacing &amp; Radius</h3>
+        <table class="spec-table">
+          <tr><th>Token</th><th>Value</th><th>Use</th></tr>
+          <tr><td class="token">space.xs</td><td>4</td><td>아이콘 사이</td></tr>
+          <tr><td class="token">space.sm</td><td>8</td><td>카드 사이</td></tr>
+          <tr><td class="token">space.md</td><td>12</td><td>카드 내부</td></tr>
+          <tr><td class="token">space.lg</td><td>16</td><td>섹션 패딩</td></tr>
+          <tr><td class="token">space.xl</td><td>20</td><td>섹션 사이</td></tr>
+          <tr><td class="token">radius.sm</td><td>6</td><td>뱃지, 작은 버튼</td></tr>
+          <tr><td class="token">radius.md</td><td>10</td><td>입력 필드</td></tr>
+          <tr><td class="token">radius.lg</td><td>14</td><td>카드, CTA 버튼</td></tr>
+          <tr><td class="token">radius.pill</td><td>999</td><td>칩, 토글</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 02 — NAVIGATION                             -->
+<!-- ============================================ -->
+<section class="chapter">
+  <div class="wrap">
+    <div class="chapter-head">
+      <div class="chapter-num">Chapter 02 — Navigation Structure</div>
+      <h2 class="chapter-h2">5탭 + 중앙 <span class="em">FAB</span>.</h2>
+      <p class="chapter-lead">
+        하단 탭 바는 5개의 메인 탭 + 가운데 솟은 라임 FAB. FAB은 행사 제보·후기 작성을 위한 액션 시트를 띄운다.
+      </p>
+    </div>
+
+    <div class="ds-grid">
+      <div class="ds-card">
+        <h3>Bottom Tab Bar (5탭)</h3>
+        <table class="spec-table">
+          <tr><th>탭</th><th>아이콘</th><th>스택</th></tr>
+          <tr><td>피드</td><td class="token">Home</td><td>Feed → Detail / Search</td></tr>
+          <tr><td>지도</td><td class="token">MapPin</td><td>Map → Detail</td></tr>
+          <tr><td><span style="color:var(--accent);font-weight:700;">+ FAB</span></td><td class="token">Plus</td><td>ActionSheet (제보/후기)</td></tr>
+          <tr><td>저장함</td><td class="token">Bookmark</td><td>Saved → Detail</td></tr>
+          <tr><td>마이</td><td class="token">User</td><td>My → Itinerary / Settings</td></tr>
+        </table>
+      </div>
+
+      <div class="ds-card">
+        <h3>Stack Modal (오버레이)</h3>
+        <table class="spec-table">
+          <tr><th>화면</th><th>진입</th><th>형태</th></tr>
+          <tr><td>검색</td><td>피드 헤더</td><td>Modal</td></tr>
+          <tr><td>필터</td><td>피드/지도</td><td>FullScreen</td></tr>
+          <tr><td>알림</td><td>피드/마이</td><td>Stack</td></tr>
+          <tr><td>일정</td><td>마이</td><td>Stack</td></tr>
+          <tr><td>설정</td><td>마이</td><td>Stack</td></tr>
+          <tr><td>온보딩</td><td>최초 실행</td><td>Modal (replace)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 03 — SCREENS                                -->
+<!-- ============================================ -->
+<section class="chapter">
+  <div class="wrap">
+    <div class="chapter-head">
+      <div class="chapter-num">Chapter 03 — Screen Specifications</div>
+      <h2 class="chapter-h2">12개 화면 <span class="em">풀 명세</span>.</h2>
+      <p class="chapter-lead">
+        각 화면마다 풀 사이즈 목업 + 번호 콜아웃 + 컴포넌트 스펙 + 인터랙션 + 상태(로딩/빈/에러)를 명시한다. 개발자가 이 문서만 보고 구현 가능하도록.
+      </p>
+    </div>
+
+    <!-- ========= 01 FEED ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">01</span>
+        <h3>피드</h3>
+        <span class="en">FEED</span>
+      </div>
+      <p class="screen-purpose">
+        앱의 메인 진입점. 카테고리별 필터 + 오늘의 추천(Featured) + 통계 카드 3개 + 가까운 무료 공간 그리드. 사용자가 가장 자주 방문하는 화면.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <span class="brand"><span class="z">0</span>원의 품격</span>
+              <div class="actions">
+                <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+                <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+              </div>
+            </div>
+            <div class="page-sub">지금 무료로 즐길 수 있는 문화생활을 추천하세요.</div>
+            <div class="cat-row">
+              <div class="cat-pill active"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/></svg></div><div class="lb">전체</div></div>
+              <div class="cat-pill"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><div class="lb">전시</div></div>
+              <div class="cat-pill"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="lb">공연</div></div>
+              <div class="cat-pill"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="lb">클래스</div></div>
+              <div class="cat-pill"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg></div><div class="lb">행사</div></div>
+              <div class="cat-pill"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><div class="lb">공간</div></div>
+            </div>
+            <div class="scroll-area">
+              <div class="section-head"><span class="lb">오늘의 추천</span><span class="more">전체보기 ›</span></div>
+              <div class="feature-card">
+                <span class="free-tag">FREE</span>
+                <span class="x-btn">×</span>
+                <div class="meta">
+                  <div class="ttl">MMCA 현대차 시리즈 2024</div>
+                  <div class="sub">국립현대미술관 서울 · 1.2km</div>
+                </div>
+                <span class="heart">♡ 2.4k</span>
+              </div>
+              <div class="stats-row">
+                <div class="stat-card high">
+                  <div class="lb">오늘 무료</div>
+                  <div class="vl">12</div>
+                  <div class="cp">지금 예약 가능</div>
+                </div>
+                <div class="stat-card">
+                  <div class="lb">만원 이하</div>
+                  <div class="vl">28</div>
+                  <div class="cp">가성비 추천</div>
+                </div>
+                <div class="stat-card">
+                  <div class="lb">주말 추천</div>
+                  <div class="vl">43</div>
+                  <div class="cp">이번 주말</div>
+                </div>
+              </div>
+              <div class="section-head"><span class="lb">가까운 무료 공간</span><span class="more">전체보기 ›</span></div>
+              <div class="nearby-grid">
+                <div class="nearby-card"><span class="free-mini">무료</span><div class="meta"><div class="ttl">서울식물원</div><div class="sub">⌒ 1.8km</div></div></div>
+                <div class="nearby-card v2"><span class="free-mini">무료</span><div class="meta"><div class="ttl">홍대 버스킹존</div><div class="sub">⌒ 2.1km</div></div></div>
+                <div class="nearby-card v3"><span class="free-mini">무료</span><div class="meta"><div class="ttl">아트선재센터</div><div class="sub">⌒ 2.3km</div></div></div>
+              </div>
+            </div>
+            <div class="tabbar">
+              <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lb">피드</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg><span class="lb">지도</span></div>
+              <div class="tab fab-slot"><span class="lb">+</span></div>
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="lb">저장함</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lb">마이</span></div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 01 <em>· 피드 (Feed)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>① ~ ⑦ Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>Brand Wordmark</strong> — "0"만 <code>colors.accent</code>, 나머지 <code>colors.text</code>. 토큰: <code>typography.display</code>.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>Header Actions</strong> — 검색 + 알림 종 (24px, stroke 1.6). 종 탭 → NotificationsScreen.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>CategoryRow</strong> — 6개 카테고리 (전체 / 전시 / 공연 / 클래스 / 행사 / 공간). 가로 스크롤. 활성: 아이콘 배경 라임. 비활성: <code>bg-raised</code>.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>FeaturedCard</strong> — 16:10 이미지, 좌상단 무료 뱃지, 우상단 X(관심없음), 하단 그라데이션 위 제목+위치, 우하단 좋아요 카운트.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>StatsRow</strong> — 3개 카드 (오늘 무료 / 만원 이하 / 주말 추천). 첫 카드만 <code>highlight</code> variant (라임 배경). 숫자는 <code>numberLarge</code> 30/800.</div></div>
+              <div class="anno-row"><div class="anno-num">6</div><div class="body"><strong>NearbyGrid</strong> — 3열 정사각 카드. 좌상단 무료 뱃지, 하단 그라데이션 위 제목+거리. 카드 탭 → DetailScreen.</div></div>
+              <div class="anno-row"><div class="anno-num">7</div><div class="body"><strong>BottomTabBar</strong> — 5탭 (피드 활성 = 라임). 가운데 +FAB (라임 원형, 8px above tabbar). FAB 탭 → ActionSheet.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Component Spec</h4>
+            <table class="spec-table">
+              <tr><th>Component</th><th>Background</th><th>Padding</th><th>Radius</th></tr>
+              <tr><td>FeaturedCard</td><td class="token">linear-gradient</td><td>16</td><td class="token">14</td></tr>
+              <tr><td>StatCard</td><td class="token">bg-card / accent</td><td>12</td><td class="token">12</td></tr>
+              <tr><td>NearbyCard</td><td class="token">linear-gradient</td><td>0 (overlay)</td><td class="token">8</td></tr>
+              <tr><td>CategoryPill</td><td class="token">bg-raised / accent</td><td>아이콘 44</td><td class="token">pill</td></tr>
+            </table>
+          </div>
+
+          <div class="anno-section">
+            <h4>Interactions</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">CategoryPill → 피드 필터링 (Zustand <code>selectedCategory</code>)</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">FeaturedCard / NearbyCard → DetailScreen 진입 (item.id 전달)</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">FeaturedCard X 버튼 → "관심 없음" 처리, 다음 추천으로 fade transition</span></div>
+              <div class="interaction"><span class="ev">PULL</span><span class="desc">ScrollView pull-to-refresh → 데이터 재요청, accent 컬러 indicator</span></div>
+              <div class="interaction"><span class="ev">LONG</span><span class="desc">NearbyCard 길게 탭 → Quick action sheet (저장 / 공유 / 길찾기)</span></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>States</h4>
+            <div class="state-grid">
+              <div class="state-card"><div class="lb">Loading</div><div class="tt">Skeleton 카드</div><div class="dd">FeaturedCard, StatCard, NearbyCard 모두 shimmer 효과</div></div>
+              <div class="state-card empty"><div class="lb">Empty</div><div class="tt">조건 변경 안내</div><div class="dd">"이 지역에 추천 행사가 없어요" + 카테고리 변경 CTA</div></div>
+              <div class="state-card error"><div class="lb">Error</div><div class="tt">재시도 버튼</div><div class="dd">"불러오지 못했어요" + Retry 버튼 (accent)</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 02 DETAIL ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">02</span>
+        <h3>상세</h3>
+        <span class="en">DETAIL</span>
+      </div>
+      <p class="screen-purpose">
+        행사 한 건의 모든 정보를 한 화면에. 사용자의 핵심 의사결정 지점 — 저장 또는 예약. Bottom sticky CTA 2개로 행동을 유도.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="detail-hero">
+              <div class="top-bar">
+                <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></div>
+                <div class="right">
+                  <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
+                  <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+                </div>
+              </div>
+            </div>
+            <div class="detail-info">
+              <span class="free-tag">무료 · 전시</span>
+              <h1>MMCA 현대차 시리즈 2024</h1>
+              <div class="sub">국립현대미술관 서울 · 1.2km</div>
+              <div class="rating">
+                <span class="star">★ 4.8</span><span>(128)</span>
+                <span class="pipe">|</span>
+                <span>💬 리뷰 2.4k</span>
+              </div>
+            </div>
+            <div class="detail-grid">
+              <div class="item">
+                <div class="ic">●</div>
+                <div class="vl">무료</div>
+                <div class="lb">관람료</div>
+              </div>
+              <div class="item">
+                <div class="ic">●</div>
+                <div class="vl">예약 필요</div>
+                <div class="lb">온라인 사전 예약</div>
+              </div>
+              <div class="item">
+                <div class="ic">●</div>
+                <div class="vl">10:00–18:00</div>
+                <div class="lb">매주 월요일 휴무</div>
+              </div>
+            </div>
+            <div class="detail-desc">
+              현대미술의 흐름을 조망하는 대표 전시 시리즈입니다.<br/>
+              국내외 작가들의 다양한 작품을 경험해보세요.
+            </div>
+            <div class="detail-tags">
+              <span class="tag-item">#현대미술</span>
+              <span class="tag-item">#전시추천</span>
+              <span class="tag-item">#무료전시</span>
+            </div>
+            <div class="detail-map">
+              <div class="addr-row">
+                <span class="addr">📍 서울 종로구 삼청로 30 국립현대미술관 서울</span>
+                <span style="color:var(--text-3);">›</span>
+              </div>
+              <div class="map-area">
+                <div class="pin">📍</div>
+              </div>
+              <div class="info-row">
+                <span style="color:var(--text-2);">1.2km · 도보 15분</span>
+                <span class="nav">길찾기</span>
+              </div>
+            </div>
+            <div class="detail-actions">
+              <div class="btn-outline">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                저장하기
+              </div>
+              <div class="btn-primary">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                예약하기
+              </div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 02 <em>· 상세 (Detail)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>HeroImage</strong> — 4:3 비율. 어두운 무드 그라데이션 + 작품 일러스트. <code>top-bar</code>는 transparent overlay (반투명 black pill 위 흰 아이콘).</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>FreeTag</strong> — accent 배경 + 카테고리 라벨 결합. "무료 · 전시" 형식.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>Title (h1)</strong> — 22/800/-0.015em. 다음 줄 위치 <code>caption</code>.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>RatingRow</strong> — ★ 별점 (accent) + 리뷰 카운트. 구분 pipe는 <code>text-4</code>.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>InfoGrid (3열)</strong> — <code>bg-card</code> 배경, 세로 디바이더 (<code>border</code>). 각 셀: 점 아이콘 + 값 + 라벨.</div></div>
+              <div class="anno-row"><div class="anno-num">6</div><div class="body"><strong>Description &amp; Hashtags</strong> — 본문은 <code>text-2</code> 12/1.6. 해시태그는 accent 컬러.</div></div>
+              <div class="anno-row"><div class="anno-num">7</div><div class="body"><strong>MapPreview</strong> — 주소 행 + 100px 지도 + "길찾기" 버튼. 핀은 accent 색 22px 원형.</div></div>
+              <div class="anno-row"><div class="anno-num">8</div><div class="body"><strong>BottomActions</strong> — 1:2 비율 (저장:예약). 저장은 outline, 예약은 solid accent. 둘 다 14px 폰트, 14padding, radius 12.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Interactions</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">SCROLL</span><span class="desc">스크롤 시 HeroImage 패럴랙스 + topBar 점진적 검정 fade in</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">저장 버튼 → 토글 (북마크 아이콘 fill 전환). Haptic feedback (light)</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">예약 버튼 → WebViewScreen (외부 예약 사이트) 또는 인앱 예약 모달</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">길찾기 → 시스템 지도 앱 (Apple Maps / Google Maps) 호출</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">공유 아이콘 → 시스템 ShareSheet ("0원으로 다녀온 곳" OG 카드)</span></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Field Data</h4>
+            <table class="spec-table">
+              <tr><th>Field</th><th>Type</th><th>Source</th></tr>
+              <tr><td>title, subtitle</td><td>string</td><td><code>events.title</code>, <code>venue.name</code></td></tr>
+              <tr><td>priceTier</td><td class="token">'free'|'cheap'|'mid'</td><td>FreeTag variant 결정</td></tr>
+              <tr><td>rating, reviewCount</td><td>number</td><td>RatingRow</td></tr>
+              <tr><td>operatingHours</td><td>string</td><td>InfoGrid 세 번째 셀</td></tr>
+              <tr><td>hashtags</td><td>string[]</td><td>최대 5개 표시, 그 이상은 +N</td></tr>
+              <tr><td>reservationUrl</td><td>string?</td><td>예약 버튼 클릭 시 WebView</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 03 MAP ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">03</span>
+        <h3>지도</h3>
+        <span class="en">MAP</span>
+      </div>
+      <p class="screen-purpose">
+        지도에서 내 주변 행사를 한눈에. 핀은 카테고리별 컬러로 구분 (전시=라임 / 공연=보라 / 클래스=핑크). 핀 탭 시 하단 카드 슬라이드.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="map-screen" style="display:flex;flex-direction:column;">
+              <div class="map-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>지역, 장소, 키워드 검색</span>
+              </div>
+              <div class="map-cats">
+                <div class="map-cat-pill active">전체</div>
+                <div class="map-cat-pill">전시</div>
+                <div class="map-cat-pill">공연</div>
+                <div class="map-cat-pill">클래스</div>
+                <div class="map-cat-pill">공간</div>
+              </div>
+              <div class="map-canvas">
+                <div class="map-pin" style="top:18%;left:25%;"></div>
+                <div class="map-pin violet" style="top:30%;left:62%;"></div>
+                <div class="map-pin pink" style="top:45%;left:35%;"></div>
+                <div class="map-pin active" style="top:52%;left:55%;"></div>
+                <div class="map-pin violet" style="top:65%;left:22%;"></div>
+                <div class="map-pin" style="top:75%;left:65%;"></div>
+              </div>
+            </div>
+            <div class="map-bottom-card">
+              <div class="thumb"></div>
+              <div class="info">
+                <div class="ttl">서울시립미술관 서소문본관</div>
+                <div class="sub">1.5km · 도보 18분</div>
+                <div class="time">오늘 10:00 – 20:00</div>
+              </div>
+              <div class="heart">♡</div>
+            </div>
+            <div class="tabbar">
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lb">피드</span></div>
+              <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg><span class="lb">지도</span></div>
+              <div class="tab fab-slot"></div>
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="lb">저장함</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lb">마이</span></div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 03 <em>· 지도 (Map)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>SearchBar (overlay)</strong> — 지도 위 sticky. <code>bg-card</code> 배경, radius 8. 탭 시 SearchScreen 모달.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>CategoryFilter (가로 스크롤)</strong> — pill 형태, 활성은 라임. 5개 카테고리 (전체 / 전시 / 공연 / 클래스 / 공간).</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>Map Canvas</strong> — Google Maps Provider + 다크 customMapStyle. 도로 어둡게, POI 숨김.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>Map Pins (카테고리별 컬러)</strong> — 전시·공간 = accent / 공연·행사 = violet / 클래스 = pink. 38px 원형, 보더 2px. 활성 핀은 3px + 라임 글로우.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>BottomCard (sticky)</strong> — 선택된 핀의 정보. 썸네일 + 제목 + 거리 + 운영시간 + 하트. 좌우 스와이프로 다음/이전 핀.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Interactions</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">Pin → BottomCard 슬라이드 인 + 지도 살짝 zoom (camera animate)</span></div>
+              <div class="interaction"><span class="ev">SWIPE</span><span class="desc">BottomCard 좌우 스와이프 → 인접 핀으로 이동, 카드 페이드 전환</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">BottomCard 본문 영역 → DetailScreen</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">CategoryPill → 해당 카테고리 핀만 표시 (필터링)</span></div>
+              <div class="interaction"><span class="ev">DRAG</span><span class="desc">지도 드래그 → 새 영역 핀 자동 로드 (디바운스 500ms)</span></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Map Style (다크)</h4>
+            <table class="spec-table">
+              <tr><th>Element</th><th>Color</th></tr>
+              <tr><td>지면</td><td class="token">#0F0F0F</td></tr>
+              <tr><td>도로</td><td class="token">#1F1F1F</td></tr>
+              <tr><td>물</td><td class="token">#0A1A1F</td></tr>
+              <tr><td>POI 라벨</td><td class="token">hidden</td></tr>
+              <tr><td>도시 라벨</td><td class="token">#7A7A7A</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 04 SEARCH ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">04</span>
+        <h3>검색</h3>
+        <span class="en">SEARCH</span>
+      </div>
+      <p class="screen-purpose">
+        키워드로 행사를 빠르게 찾는 모달. 최근 검색(개별 삭제 가능) + 추천 검색어(트렌딩) 제공. 입력 시 디바운스 300ms로 결과 화면 전환.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="search-input-wrap">
+              <div class="search-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>장소·전시·공연 검색</span>
+              </div>
+              <span class="search-cancel">취소</span>
+            </div>
+            <div class="search-section">
+              <div class="search-section-h">
+                <span>최근 검색</span>
+                <span class="clear">지우기</span>
+              </div>
+              <div class="search-chips">
+                <div class="search-chip">전시 <span class="x">×</span></div>
+                <div class="search-chip">서울시립미술관 <span class="x">×</span></div>
+                <div class="search-chip">무료전시 <span class="x">×</span></div>
+              </div>
+            </div>
+            <div class="search-section">
+              <div class="search-section-h"><span>추천 검색어</span></div>
+              <div class="search-list">
+                <div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="term">무료공연</span></div>
+                <div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="term">이번 주말</span></div>
+                <div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="term">MMCA</span></div>
+                <div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="term">아트선재센터</span></div>
+                <div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="term">연극</span></div>
+                <div class="search-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="term">클래스</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 04 <em>· 검색 (Search)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>SearchInput</strong> — 진입 시 자동 포커스 + 키보드 노출. placeholder 색은 <code>text-3</code>.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>Cancel</strong> — 우측 텍스트 버튼. 탭 시 모달 dismiss.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>최근 검색 (Recent)</strong> — 최대 5개 chip. AsyncStorage <code>recent_searches</code>에서 로드. 우측 "지우기" → 전체 삭제.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>Chip × 버튼</strong> — 개별 삭제. <code>text-3</code> X 아이콘.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>추천 검색어 (Trending)</strong> — 서버에서 가져오는 인기 검색 Top 6. 행 형태, <code>Search</code> 아이콘 + 키워드.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Search Behavior</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">TYPE</span><span class="desc">2글자 이상 입력 → 디바운스 300ms 후 자동 검색</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">최근/추천 검색어 → 즉시 해당 키워드로 검색 결과 화면</span></div>
+              <div class="interaction"><span class="ev">SUBMIT</span><span class="desc">키보드 Return → 명시적 검색 + 최근 검색에 추가</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">Chip × 버튼 → 해당 항목만 삭제 (transition: collapse)</span></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>States</h4>
+            <div class="state-grid">
+              <div class="state-card"><div class="lb">Result</div><div class="tt">결과 카드 리스트</div><div class="dd">NearbyCard와 동일 디자인, 세로 리스트</div></div>
+              <div class="state-card empty"><div class="lb">Empty</div><div class="tt">결과 없음</div><div class="dd">"검색 결과가 없어요" + 다른 키워드 추천</div></div>
+              <div class="state-card error"><div class="lb">Initial</div><div class="tt">기본 화면</div><div class="dd">최근 + 추천 검색어 표시 (위 mockup)</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 05 FILTER ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">05</span>
+        <h3>필터</h3>
+        <span class="en">FILTER</span>
+      </div>
+      <p class="screen-purpose">
+        4개 차원(지역 / 카테고리 / 가격 / 날짜)으로 결과를 좁힌다. 풀스크린 모달이며, 하단에 sticky "적용하기" CTA.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <span class="brand" style="font-size:16px;">필터</span>
+              <span style="font-size:11px;color:var(--text-3);">초기화</span>
+            </div>
+            <div class="filter-body">
+              <div class="filter-section">
+                <h4>지역 <span class="val">반경 5km</span></h4>
+                <div class="filter-slider">
+                  <div class="knob"></div>
+                </div>
+                <div class="filter-pills">
+                  <div class="filter-pill active">전체</div>
+                  <div class="filter-pill">서울</div>
+                  <div class="filter-pill">경기</div>
+                  <div class="filter-pill">인천</div>
+                  <div class="filter-pill">부산</div>
+                  <div class="filter-pill">대구</div>
+                  <div class="filter-pill">광주</div>
+                  <div class="filter-pill">대전</div>
+                  <div class="filter-pill">기타</div>
+                </div>
+              </div>
+              <div class="filter-section">
+                <h4>카테고리</h4>
+                <div class="filter-pills">
+                  <div class="filter-pill active">전체</div>
+                  <div class="filter-pill">전시</div>
+                  <div class="filter-pill">공연</div>
+                  <div class="filter-pill">클래스</div>
+                  <div class="filter-pill">행사</div>
+                  <div class="filter-pill">공간</div>
+                </div>
+              </div>
+              <div class="filter-section">
+                <h4>가격</h4>
+                <div class="filter-pills">
+                  <div class="filter-pill">전체</div>
+                  <div class="filter-pill active">무료</div>
+                  <div class="filter-pill">1만원 이하</div>
+                  <div class="filter-pill">1–3만원</div>
+                  <div class="filter-pill">3만원 이상</div>
+                </div>
+              </div>
+              <div class="filter-section">
+                <h4>날짜</h4>
+                <div class="filter-pills">
+                  <div class="filter-pill active">전체</div>
+                  <div class="filter-pill">오늘</div>
+                  <div class="filter-pill">이번 주</div>
+                  <div class="filter-pill">이번 달</div>
+                  <div class="filter-pill">직접 선택</div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-cta">적용하기 (28개)</div>
+          </div>
+          <div class="mockup-caption">SCREEN 05 <em>· 필터 (Filter)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>TopBar</strong> — 좌: 뒤로가기, 중: "필터", 우: "초기화" (모든 선택 해제).</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>지역 슬라이더</strong> — 1km ~ 30km, 트랙 라임. 우측 라벨에 현재 값 (<code>반경 5km</code>).</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>지역 칩</strong> — 9개 지역. multi-select 가능. "전체" 선택 시 다른 칩 자동 해제.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>카테고리 칩</strong> — 6개 (전체 / 전시 / 공연 / 클래스 / 행사 / 공간). multi-select.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>가격 칩</strong> — 5단계 (전체 / 무료 / 1만원↓ / 1–3만원 / 3만원↑). single-select.</div></div>
+              <div class="anno-row"><div class="anno-num">6</div><div class="body"><strong>날짜 칩</strong> — 5단계 + "직접 선택" 탭 시 캘린더 모달 노출 (date range picker).</div></div>
+              <div class="anno-row"><div class="anno-num">7</div><div class="body"><strong>적용하기 CTA (sticky)</strong> — 라임 배경. 결과 카운트 동적 표시 (예: "적용하기 (28개)"). 0개일 때는 "조건 변경" 안내.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>State Logic</h4>
+            <table class="spec-table">
+              <tr><th>Field</th><th>Type</th><th>Default</th></tr>
+              <tr><td class="token">region</td><td>string[]</td><td>['전체']</td></tr>
+              <tr><td class="token">radius</td><td>number (km)</td><td>5</td></tr>
+              <tr><td class="token">categories</td><td>Category[]</td><td>['전체']</td></tr>
+              <tr><td class="token">priceTier</td><td>'free'|'cheap'|...</td><td>null (전체)</td></tr>
+              <tr><td class="token">dateRange</td><td>{ start, end }</td><td>null (전체)</td></tr>
+            </table>
+          </div>
+
+          <div class="anno-section">
+            <h4>Interactions</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">"전체" 칩 → 같은 그룹 내 모든 다른 칩 해제</span></div>
+              <div class="interaction"><span class="ev">DRAG</span><span class="desc">반경 슬라이더 → 실시간 라벨 업데이트, debounce 적용</span></div>
+              <div class="interaction"><span class="ev">CHANGE</span><span class="desc">필터 변경 시 → CTA 카운트 실시간 업데이트 (서버 count 호출)</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">초기화 → 모든 필터 default 값으로 리셋</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">적용하기 → 필터 적용 + 모달 dismiss + 피드/지도로 복귀</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 06 SAVED ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">06</span>
+        <h3>저장함</h3>
+        <span class="en">SAVED</span>
+      </div>
+      <p class="screen-purpose">
+        사용자가 저장한 행사를 모아 보여주는 탭. 카테고리별 필터 + 2열 그리드. 우상단 "편집" 버튼으로 다중 삭제 모드 진입.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <span class="brand" style="font-size:22px;">저장함</span>
+              <span style="font-size:13px;color:var(--text-2);">편집</span>
+            </div>
+            <div class="cat-row" style="padding-top:0;">
+              <div class="filter-pill active" style="padding:7px 12px;">전체 12</div>
+              <div class="filter-pill">전시 5</div>
+              <div class="filter-pill">공연 3</div>
+              <div class="filter-pill">행사 2</div>
+              <div class="filter-pill">공간 2</div>
+            </div>
+            <div class="scroll-area">
+              <div class="saved-grid">
+                <div class="saved-card">
+                  <div class="img"><span class="free-mini">FREE</span></div>
+                  <div class="meta">
+                    <div class="ttl">MMCA 현대차 시리즈 2024</div>
+                    <div class="sub-row"><span>국립현대미술관</span><span class="heart">♡ 2.4k</span></div>
+                  </div>
+                </div>
+                <div class="saved-card">
+                  <div class="img v2"><span class="free-mini">FREE</span></div>
+                  <div class="meta">
+                    <div class="ttl">세종문화회관 체임버 시리즈</div>
+                    <div class="sub-row"><span>세종문화회관</span><span class="heart">♡ 482</span></div>
+                  </div>
+                </div>
+                <div class="saved-card">
+                  <div class="img v3"><span class="free-mini">FREE</span></div>
+                  <div class="meta">
+                    <div class="ttl">서울시립미술관</div>
+                    <div class="sub-row"><span>서소문본관</span><span class="heart">♡ 921</span></div>
+                  </div>
+                </div>
+                <div class="saved-card">
+                  <div class="img"><span class="free-mini" style="background:var(--violet);color:#fff;">예약</span></div>
+                  <div class="meta">
+                    <div class="ttl">홍대 버스킹존</div>
+                    <div class="sub-row"><span>걷고 싶은 거리</span><span class="heart">♡ 567</span></div>
+                  </div>
+                </div>
+                <div class="saved-card">
+                  <div class="img v2"><span class="free-mini">FREE</span></div>
+                  <div class="meta">
+                    <div class="ttl">아트선재센터</div>
+                    <div class="sub-row"><span>아트선재센터</span><span class="heart">♡ 412</span></div>
+                  </div>
+                </div>
+                <div class="saved-card">
+                  <div class="img v3"><span class="free-mini">FREE</span></div>
+                  <div class="meta">
+                    <div class="ttl">창덕궁 후원 특별관람</div>
+                    <div class="sub-row"><span>창덕궁</span><span class="heart">♡ 218</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tabbar">
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lb">피드</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg><span class="lb">지도</span></div>
+              <div class="tab fab-slot"></div>
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="lb">저장함</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lb">마이</span></div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 06 <em>· 저장함 (Saved)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>Header</strong> — "저장함" h1 + 우상단 "편집" 텍스트 버튼.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>FilterChips</strong> — 5개 카테고리 필터, pill 형태. 각 칩에 카운트 표시. 활성: 라임 배경.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>SavedGrid (2열)</strong> — 4:3 이미지 + 메타 영역. 좌상단 뱃지 (FREE = 라임 / 예약 = 보라).</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>SavedCard</strong> — 이미지 영역 + 제목 + 부제 + 좋아요 카운트. 카드 radius 12.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Edit Mode</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">"편집" 탭 → 각 카드에 체크박스 노출, 헤더가 "선택 0 · 삭제 / 취소"로 변경</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">카드 탭 → 체크 토글</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">"삭제" 버튼 → 확인 알럿 → 선택 항목 일괄 삭제</span></div>
+              <div class="interaction"><span class="ev">SWIPE</span><span class="desc">카드 좌측 스와이프 (편집모드 아닐 때) → 빠른 삭제 액션</span></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>States</h4>
+            <div class="state-grid">
+              <div class="state-card"><div class="lb">Loading</div><div class="tt">Skeleton 6장</div><div class="dd">2열 그리드 형태로 shimmer</div></div>
+              <div class="state-card empty"><div class="lb">Empty</div><div class="tt">EmptyState 사용</div><div class="dd">"저장한 콘텐츠가 아직 없어요" + 콘텐츠 둘러보기 CTA</div></div>
+              <div class="state-card"><div class="lb">Filtered</div><div class="tt">필터 결과</div><div class="dd">선택 카테고리만 필터링 + 카운트 업데이트</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 07 ITINERARY ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">07</span>
+        <h3>나의 일정</h3>
+        <span class="en">ITINERARY</span>
+      </div>
+      <p class="screen-purpose">
+        예약했거나 캘린더 추가한 행사를 날짜별로 정리. 예정 / 지난 일정 탭으로 구분. D-day 알림과 외부 캘린더 동기화.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <span class="brand" style="font-size:18px;">나의 일정</span>
+              <div style="width:28px;"></div>
+            </div>
+            <div class="itin-tabs">
+              <div class="itin-tab active">예정 <span class="ct">3</span></div>
+              <div class="itin-tab">지난 일정 <span class="ct">8</span></div>
+            </div>
+            <div class="scroll-area" style="padding-left:0;padding-right:0;">
+              <div class="itin-day">오늘 · 5.20</div>
+              <div class="itin-event">
+                <span class="badge">예약</span>
+                <div class="ttl">MMCA 현대차 시리즈 2024</div>
+                <div class="sub">국립현대미술관 서울</div>
+                <div class="time">10:00 – 18:00</div>
+              </div>
+              <div class="itin-day">6.1 (토)</div>
+              <div class="itin-event">
+                <span class="badge">예약</span>
+                <div class="ttl">아트선재센터<br/>올해의 작가전</div>
+                <div class="sub">아트선재센터</div>
+                <div class="time">14:00 – 16:00</div>
+              </div>
+              <div class="itin-day">6.2 (일)</div>
+              <div class="itin-event">
+                <span class="badge free">FREE</span>
+                <div class="ttl">홍대 버스킹존<br/>주말 버스킹 공연</div>
+                <div class="sub">걷고 싶은 거리</div>
+                <div class="time">16:00 – 18:00</div>
+              </div>
+            </div>
+            <div class="tabbar">
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lb">피드</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg><span class="lb">지도</span></div>
+              <div class="tab fab-slot"></div>
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="lb">저장함</span></div>
+              <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lb">마이</span></div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 07 <em>· 나의 일정 (Itinerary)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>Tab Row</strong> — "예정 (3) / 지난 일정 (8)". 활성 탭은 라임 인디케이터 + bold.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>Day Header</strong> — "오늘 · 5.20" / "6.1 (토)" 형식. 라임 컬러, 모노스페이스.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>EventRow</strong> — 시간 / 제목 / 장소 + 우상단 뱃지. 뱃지: 예약 = 라임, 무료 = 라임 텍스트 + raised 배경.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>날짜 그룹핑</strong> — 시간 오름차순 정렬. "오늘 · MM.DD" → "MM.DD (요일)" 형식 자동 변환.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Sync &amp; Notification</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">SYNC</span><span class="desc">시스템 캘린더 (Apple/Google) 양방향 동기화 옵션</span></div>
+              <div class="interaction"><span class="ev">PUSH</span><span class="desc">D-1: 어제 알림 / D-day: 1시간 전 알림 (사용자 설정 가능)</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">EventRow → DetailScreen 이동</span></div>
+              <div class="interaction"><span class="ev">SWIPE</span><span class="desc">좌측 스와이프 → 캘린더에서 제거 (확인 알럿)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 08 MY ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">08</span>
+        <h3>마이</h3>
+        <span class="en">MY</span>
+      </div>
+      <p class="screen-purpose">
+        프로필 + 통계 + 메뉴. 사용자의 활동을 한눈에 보여주고, 일정·콘텐츠·알림 등 개인화 기능 진입점.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <span class="brand" style="font-size:18px;">설정</span>
+              <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            </div>
+            <div class="my-prof">
+              <div class="avatar-row">
+                <div class="my-avatar"></div>
+                <div>
+                  <div class="name">@yujin_</div>
+                  <span class="edit">프로필 편집</span>
+                </div>
+              </div>
+              <div class="my-stats">
+                <div class="my-stat-cell"><div class="num">128</div><div class="lb">저장한 콘텐츠</div></div>
+                <div class="my-stat-cell"><div class="num">36</div><div class="lb">방문한 곳</div></div>
+                <div class="my-stat-cell"><div class="num">24</div><div class="lb">팔로워</div></div>
+              </div>
+            </div>
+            <div class="my-menu">
+              <div class="menu-row">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                  나의 일정
+                </div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  최근 본 콘텐츠
+                </div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+                  알림
+                </div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  이용 안내
+                </div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  문의하기
+                </div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+            </div>
+            <div class="tabbar">
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lb">피드</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg><span class="lb">지도</span></div>
+              <div class="tab fab-slot"></div>
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="lb">저장함</span></div>
+              <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lb">마이</span></div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 08 <em>· 마이 (My)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>ProfileHeader</strong> — 우상단: 톱니바퀴(SettingsScreen 진입). 좌상단: 화면 라벨.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>Avatar</strong> — 56px 원형, 보라→핑크 그라데이션 (라임 highlight 포함). 사용자 업로드 이미지가 있으면 대체.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>닉네임 + 편집</strong> — <code>@yujin_</code> 핸들 형식. "프로필 편집" 작은 outline 버튼.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>StatsRow</strong> — 3개 셀 (저장한 콘텐츠 / 방문한 곳 / 팔로워). 숫자는 라임, 22/800. 셀 사이 세로 디바이더.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>MenuList</strong> — 5개 메뉴. 좌: 아이콘 + 라벨, 우: chevron. 행 사이 hairline 디바이더.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Menu Routing</h4>
+            <table class="spec-table">
+              <tr><th>Menu</th><th>Route</th></tr>
+              <tr><td>나의 일정</td><td class="token">→ ItineraryScreen</td></tr>
+              <tr><td>최근 본 콘텐츠</td><td class="token">→ RecentScreen</td></tr>
+              <tr><td>알림</td><td class="token">→ NotificationsScreen</td></tr>
+              <tr><td>이용 안내</td><td class="token">→ FAQ WebView</td></tr>
+              <tr><td>문의하기</td><td class="token">mailto: 또는 채널톡</td></tr>
+              <tr><td>설정 (톱니바퀴)</td><td class="token">→ SettingsScreen</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 09 SETTINGS ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">09</span>
+        <h3>설정</h3>
+        <span class="en">SETTINGS</span>
+      </div>
+      <p class="screen-purpose">
+        알림 설정, 카테고리·지역 관리, 토글, 앱 정보, 로그아웃. iOS 표준 settings 패턴 + 다크 톤 적용.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <span class="brand" style="font-size:18px;">설정</span>
+              <div style="width:28px;"></div>
+            </div>
+            <div class="scroll-area" style="padding:0;">
+              <div class="my-section-h">알림 설정</div>
+              <div class="menu-row">
+                <div class="left">알림 설정</div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">관심 카테고리 관리</div>
+                <div class="right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">기본 지역 설정</div>
+                <div class="right"><span class="val" style="color:var(--accent);font-weight:600;">서울</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg></div>
+              </div>
+              <div class="my-section-h">알림</div>
+              <div class="menu-row">
+                <div class="left">푸시 알림</div>
+                <div class="right"><div class="switch on"></div></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">이벤트 알림</div>
+                <div class="right"><div class="switch on"></div></div>
+              </div>
+              <div class="menu-row">
+                <div class="left">마케팅 정보 수신</div>
+                <div class="right"><div class="switch"></div></div>
+              </div>
+              <div class="my-section-h">정보</div>
+              <div class="menu-row">
+                <div class="left">앱 정보</div>
+                <div class="right"><span class="val">버전 1.0.0</span></div>
+              </div>
+              <div class="menu-row">
+                <div class="left" style="color:var(--danger);">로그아웃</div>
+                <div class="right"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 09 <em>· 설정 (Settings)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>SectionHeader</strong> — 섹션 그룹화. 모노스페이스 + uppercase + <code>text-3</code>.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>MenuRow (chevron)</strong> — 좌: 라벨, 우: 값(선택사항) + chevron.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>MenuRow (switch)</strong> — Toggle on: 트랙 라임. Off: 트랙 <code>bg-raised</code>. 썸 16px.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>로그아웃</strong> — danger 컬러 (<code>#FF5252</code>) 텍스트 단독. 탭 시 확인 알럿 후 처리.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Toggle Defaults</h4>
+            <table class="spec-table">
+              <tr><th>Toggle</th><th>Default</th><th>Stored</th></tr>
+              <tr><td>푸시 알림</td><td>ON</td><td class="token">prefs.push</td></tr>
+              <tr><td>이벤트 알림</td><td>ON</td><td class="token">prefs.event</td></tr>
+              <tr><td>마케팅 정보</td><td>OFF</td><td class="token">prefs.marketing</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 10 NOTIFICATIONS (간략) ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">10</span>
+        <h3>알림</h3>
+        <span class="en">NOTIFICATIONS</span>
+      </div>
+      <p class="screen-purpose">
+        D-day 알림, 데일리 픽, 새 큐레이션 등 푸시 히스토리. 그룹 헤더(오늘/어제/이번 주)로 분류. 미읽 알림은 라임 dot 표시.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <span class="brand" style="font-size:18px;">알림</span>
+              <div class="ico-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/></svg></div>
+            </div>
+            <div class="scroll-area" style="padding:0;">
+              <div class="my-section-h">오늘 · 5월 7일</div>
+              <div class="menu-row" style="padding-left:32px;position:relative;align-items:flex-start;flex-direction:column;gap:4px;">
+                <div style="position:absolute;left:14px;top:18px;width:6px;height:6px;border-radius:50%;background:var(--accent);"></div>
+                <div style="font-size:9.5px;letter-spacing:0.18em;color:var(--danger);font-weight:700;">⚡ URGENT · 마감 임박</div>
+                <div style="font-size:13px;font-weight:700;width:100%;">현대차 시리즈, 잔여석 23석</div>
+                <div style="font-size:11px;color:var(--text-3);width:100%;">예약하신 행사의 마감이 D-2 남았습니다.</div>
+                <div style="font-size:9px;color:var(--text-4);font-family:var(--mono);">2시간 전</div>
+              </div>
+              <div class="menu-row" style="padding-left:32px;position:relative;align-items:flex-start;flex-direction:column;gap:4px;">
+                <div style="position:absolute;left:14px;top:18px;width:6px;height:6px;border-radius:50%;background:var(--accent);"></div>
+                <div style="font-size:9.5px;letter-spacing:0.18em;color:var(--accent);font-weight:700;">TODAY'S PICK</div>
+                <div style="font-size:13px;font-weight:700;width:100%;">오늘의 발견이 도착했습니다</div>
+                <div style="font-size:11px;color:var(--text-3);width:100%;">매월 마지막 수요일, 문화가 있는 날.</div>
+                <div style="font-size:9px;color:var(--text-4);font-family:var(--mono);">오전 8:00</div>
+              </div>
+              <div class="my-section-h">어제 · 5월 6일</div>
+              <div class="menu-row" style="align-items:flex-start;flex-direction:column;gap:4px;">
+                <div style="font-size:9.5px;letter-spacing:0.18em;color:var(--text-3);font-weight:700;">STORIES</div>
+                <div style="font-size:13px;font-weight:700;width:100%;color:var(--text-2);">새 큐레이션이 발행되었습니다</div>
+                <div style="font-size:11px;color:var(--text-3);width:100%;">한강에서 만나는 5월의 노을, 다섯 곳.</div>
+                <div style="font-size:9px;color:var(--text-4);font-family:var(--mono);">오후 4:30</div>
+              </div>
+              <div class="menu-row" style="align-items:flex-start;flex-direction:column;gap:4px;">
+                <div style="font-size:9.5px;letter-spacing:0.18em;color:var(--text-3);font-weight:700;">REMINDER</div>
+                <div style="font-size:13px;font-weight:700;width:100%;color:var(--text-2);">한강 노을 음악회까지 D-7</div>
+                <div style="font-size:11px;color:var(--text-3);width:100%;">5월 14일, 캘린더에 추가하시겠어요?</div>
+                <div style="font-size:9px;color:var(--text-4);font-family:var(--mono);">오후 1:12</div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 10 <em>· 알림 (Notifications)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Notification Types</h4>
+            <table class="spec-table">
+              <tr><th>Type</th><th>Color</th><th>Trigger</th></tr>
+              <tr><td>URGENT</td><td class="token">danger</td><td>D-2 잔여석 임박</td></tr>
+              <tr><td>TODAY'S PICK</td><td class="token">accent</td><td>매일 8AM 데일리 픽</td></tr>
+              <tr><td>STORIES</td><td class="token">text-3</td><td>새 에디토리얼 발행</td></tr>
+              <tr><td>REMINDER</td><td class="token">text-3</td><td>D-7 / D-1 알림</td></tr>
+            </table>
+          </div>
+
+          <div class="anno-section">
+            <h4>Behavior</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">DOT</span><span class="desc">미읽 알림 좌측 6px 라임 dot 표시</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">알림 행 탭 → 관련 화면으로 이동 (이벤트→Detail, 큐레이션→Reading)</span></div>
+              <div class="interaction"><span class="ev">SWIPE</span><span class="desc">좌측 스와이프 → 알림 삭제</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">우상단 톱니바퀴 → 알림 설정 화면</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 11 ONBOARDING ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">11</span>
+        <h3>온보딩</h3>
+        <span class="en">ONBOARDING</span>
+      </div>
+      <p class="screen-purpose">
+        최초 진입 시 3단계 풀스크린 가로 스와이프. 브랜드 카피 → 위치 권한 → 관심 카테고리 선택. 라임/보라/핑크 그라데이션이 박물관의 깊이감을 만든다.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar" style="color:var(--text);"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="onb-screen">
+              <div class="onb-content">
+                <h1>좋은 문화는<br/><span class="em">누구에게나</span><br/>열려 있어야 하니까</h1>
+                <p class="deck">무료로 즐길 수 있는<br/>다양한 문화생활을 발견해보세요.</p>
+              </div>
+              <div class="onb-bot">
+                <div class="onb-dots">
+                  <div class="onb-dot active"></div>
+                  <div class="onb-dot"></div>
+                  <div class="onb-dot"></div>
+                </div>
+                <div class="onb-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 11 <em>· 온보딩 (Onboarding)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>그라데이션 배경</strong> — 라임 30% (좌상단) → 보라 50% (우중간) → 핑크 30% (중앙) → 검정 (전체). 노이즈 텍스처 12% opacity.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>메인 카피</strong> — 32/800. "누구에게나"만 라임. 한 줄씩 페이드인 200ms 간격.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>서브 카피</strong> — 13/text-2/1.6. 메인 아래 24px 간격.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>Dots Indicator</strong> — 3개. 활성은 18×3px 라운드 막대 라임, 비활성은 6px 원형 흰색 30%.</div></div>
+              <div class="anno-row"><div class="anno-num">5</div><div class="body"><strong>Arrow FAB</strong> — 44px 라임 원형. 다음 단계로 이동. 마지막 단계에서는 "시작하기" 텍스트로 변경.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>3 Steps</h4>
+            <table class="spec-table">
+              <tr><th>Step</th><th>Content</th><th>Action</th></tr>
+              <tr><td>1</td><td>"좋은 문화는 누구에게나..."</td><td>다음</td></tr>
+              <tr><td>2</td><td>위치 권한 요청</td><td>위치 허용 / 건너뛰기</td></tr>
+              <tr><td>3</td><td>관심 카테고리 6개 (multi)</td><td>시작하기</td></tr>
+            </table>
+          </div>
+
+          <div class="anno-section">
+            <h4>Animation Spec</h4>
+            <div class="interactions">
+              <div class="interaction"><span class="ev">FADE</span><span class="desc">진입 시 카피 line-by-line 페이드인 (stagger 200ms)</span></div>
+              <div class="interaction"><span class="ev">SWIPE</span><span class="desc">가로 스와이프로 단계 이동. 그라데이션 색상도 단계별 다르게 보간</span></div>
+              <div class="interaction"><span class="ev">TAP</span><span class="desc">Arrow FAB → 다음 단계 / 마지막은 메인 화면 진입</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 12 EMPTY STATE ========= -->
+    <div class="screen-page">
+      <div class="screen-head">
+        <span class="num">12</span>
+        <h3>빈 상태</h3>
+        <span class="en">EMPTY STATE</span>
+      </div>
+      <p class="screen-purpose">
+        저장함·일정·검색결과·알림이 비어 있을 때 공통 사용하는 패턴. 일러스트 + 제목 + 설명 + CTA 4구성. 사용자에게 "다음에 무엇을 해야 하는지" 명확히 안내.
+      </p>
+
+      <div class="screen-layout">
+        <div class="screen-mockup-wrap">
+          <div class="screen-mockup">
+            <div class="status-bar"><span>9:41</span><div class="right">●●● ◐ ▮▮</div></div>
+            <div class="nav-bar">
+              <span class="brand" style="font-size:22px;">저장함</span>
+              <span style="font-size:13px;color:var(--text-2);">편집</span>
+            </div>
+            <div class="empty-state">
+              <div class="empty-illust"></div>
+              <h2>저장한 콘텐츠가<br/>아직 없어요</h2>
+              <p>마음에 드는 콘텐츠를 저장하고<br/>나만의 리스트를 만들어보세요.</p>
+              <span class="empty-cta">콘텐츠 둘러보기</span>
+            </div>
+            <div class="tabbar">
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lb">피드</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/></svg><span class="lb">지도</span></div>
+              <div class="tab fab-slot"></div>
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+              <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="lb">저장함</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lb">마이</span></div>
+            </div>
+          </div>
+          <div class="mockup-caption">SCREEN 12 <em>· 빈 상태 (Empty State)</em></div>
+        </div>
+
+        <div class="annotations">
+          <div class="anno-section">
+            <h4>Component Annotations</h4>
+            <div class="anno-list">
+              <div class="anno-row"><div class="anno-num">1</div><div class="body"><strong>Illustration</strong> — 140×140px isometric 다크 일러스트. 살짝 회전된 박스 + 라임 북마크. <code>bg-card</code> 베이스.</div></div>
+              <div class="anno-row"><div class="anno-num">2</div><div class="body"><strong>Title</strong> — 17/800. 가운데 정렬. 2줄까지 허용.</div></div>
+              <div class="anno-row"><div class="anno-num">3</div><div class="body"><strong>Description</strong> — 12/text-3/1.6. 가운데 정렬. 최대 220px 너비.</div></div>
+              <div class="anno-row"><div class="anno-num">4</div><div class="body"><strong>CTA</strong> — pill 버튼. 라임 배경 + on-accent 텍스트. 12/800. padding 12×28.</div></div>
+            </div>
+          </div>
+
+          <div class="anno-section">
+            <h4>Variants by Context</h4>
+            <table class="spec-table">
+              <tr><th>Screen</th><th>Title</th><th>CTA</th></tr>
+              <tr><td>저장함</td><td>저장한 콘텐츠가 아직 없어요</td><td>콘텐츠 둘러보기</td></tr>
+              <tr><td>일정</td><td>예정된 일정이 없어요</td><td>행사 찾아보기</td></tr>
+              <tr><td>검색</td><td>검색 결과가 없어요</td><td>다른 키워드 시도</td></tr>
+              <tr><td>알림</td><td>새 알림이 없어요</td><td>알림 설정 변경</td></tr>
+            </table>
+          </div>
+
+          <div class="anno-section">
+            <h4>Component API</h4>
+            <table class="spec-table">
+              <tr><th>Prop</th><th>Type</th><th>Required</th></tr>
+              <tr><td class="token">illustration</td><td>'bookmark' | 'calendar' | 'search' | 'bell'</td><td>YES</td></tr>
+              <tr><td class="token">title</td><td>string</td><td>YES</td></tr>
+              <tr><td class="token">description</td><td>string</td><td>YES</td></tr>
+              <tr><td class="token">cta</td><td>{ label, onPress }</td><td>NO</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- 04 — COMPONENTS                             -->
+<!-- ============================================ -->
+<section class="chapter">
+  <div class="wrap">
+    <div class="chapter-head">
+      <div class="chapter-num">Chapter 04 — Component Library</div>
+      <h2 class="chapter-h2">재사용 <span class="em">컴포넌트</span>.</h2>
+      <p class="chapter-lead">
+        12개 화면을 구성하는 핵심 컴포넌트 24개. 모든 화면이 이 컴포넌트의 조합으로 만들어진다.
+      </p>
+    </div>
+
+    <div class="ds-grid">
+      <div class="ds-card">
+        <h3>Atoms</h3>
+        <table class="spec-table">
+          <tr><th>Component</th><th>Variants</th></tr>
+          <tr><td><code style="color:var(--accent);">FreeBadge</code></td><td>free / reservation / cheap</td></tr>
+          <tr><td><code style="color:var(--accent);">CategoryIcon</code></td><td>6 카테고리</td></tr>
+          <tr><td><code style="color:var(--accent);">Switch</code></td><td>on / off</td></tr>
+          <tr><td><code style="color:var(--accent);">Chip</code></td><td>default / active / dismissable</td></tr>
+          <tr><td><code style="color:var(--accent);">Button</code></td><td>primary / outline / ghost</td></tr>
+          <tr><td><code style="color:var(--accent);">Avatar</code></td><td>sm / md / lg</td></tr>
+          <tr><td><code style="color:var(--accent);">DotIndicator</code></td><td>active / idle</td></tr>
+          <tr><td><code style="color:var(--accent);">Slider</code></td><td>1축 range</td></tr>
+        </table>
+      </div>
+
+      <div class="ds-card">
+        <h3>Molecules / Organisms</h3>
+        <table class="spec-table">
+          <tr><th>Component</th><th>Used In</th></tr>
+          <tr><td><code style="color:var(--accent);">FeaturedCard</code></td><td>Feed</td></tr>
+          <tr><td><code style="color:var(--accent);">NearbyCard</code></td><td>Feed / Map BottomCard</td></tr>
+          <tr><td><code style="color:var(--accent);">SavedCard</code></td><td>Saved</td></tr>
+          <tr><td><code style="color:var(--accent);">StatCard</code></td><td>Feed / My</td></tr>
+          <tr><td><code style="color:var(--accent);">CategoryRow</code></td><td>Feed / Map</td></tr>
+          <tr><td><code style="color:var(--accent);">FilterPills</code></td><td>Filter / Saved</td></tr>
+          <tr><td><code style="color:var(--accent);">SectionHeader</code></td><td>전 화면 공통</td></tr>
+          <tr><td><code style="color:var(--accent);">TabBar (5+FAB)</code></td><td>전 화면 공통</td></tr>
+          <tr><td><code style="color:var(--accent);">EmptyState</code></td><td>전 화면 공통</td></tr>
+          <tr><td><code style="color:var(--accent);">Skeleton</code></td><td>전 화면 공통</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- COLOPHON                                   -->
+<!-- ============================================ -->
+<footer>
+  <div class="wrap">
+    <div class="big">
+      좋은 문화는<br/>
+      <span class="em">누구에게나</span>.
+    </div>
+    <div class="meta">
+      Poomgyeok Studio · 2026 · Screen Design Document v1.0
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

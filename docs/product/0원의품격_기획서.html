@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>0원의 품격 · 서비스 기획서</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #0A0A0A;
+    --bg-elev:    #141414;
+    --bg-raised:  #1F1F1F;
+    --bg-hover:   #2A2A2A;
+    --border:     #2E2E2E;
+    --border-sub: #1F1F1F;
+    --text:       #FFFFFF;
+    --text-2:     #B5B5B5;
+    --text-3:     #7A7A7A;
+    --text-4:     #4D4D4D;
+    --accent:     #D4FF00;
+    --accent-2:   #C5F500;
+    --on-accent:  #0A0A0A;
+    --violet:     #8B5CF6;
+    --pink:       #EC4899;
+    --orange:     #F97316;
+    --serif: 'Pretendard', sans-serif;
+    --sans:  'Pretendard', -apple-system, sans-serif;
+    --mono:  'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 32px; }
+
+  /* ============= COVER ============= */
+  .cover {
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(212,255,0,0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(139,92,246,0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 90%, rgba(236,72,153,0.12) 0%, transparent 55%),
+      var(--bg);
+    position: relative;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 56px 0;
+  }
+  .cover::before {
+    content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, transparent 0, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+    pointer-events: none;
+  }
+  .cover-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-3);
+    position: relative; z-index: 1;
+  }
+  .cover-top .right { display: flex; gap: 28px; }
+  .cover-mid {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    padding: 80px 0; position: relative; z-index: 1;
+  }
+  .cover-mid .label {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 24px;
+  }
+  .cover-mid h1 {
+    font-size: clamp(56px, 9vw, 132px); font-weight: 800; line-height: 0.95;
+    letter-spacing: -0.04em; margin-bottom: 36px;
+  }
+  .cover-mid h1 .zero { color: var(--accent); }
+  .cover-mid h1 .light { font-weight: 400; }
+  .cover-mid .tagline {
+    font-size: clamp(20px, 2.4vw, 32px); font-weight: 500; line-height: 1.4;
+    color: var(--text); max-width: 700px;
+    letter-spacing: -0.01em;
+  }
+  .cover-mid .tagline .em { color: var(--accent); }
+  .cover-mid .deck {
+    font-size: 17px; color: var(--text-2); margin-top: 20px;
+    max-width: 600px; line-height: 1.6;
+  }
+  .cover-bot {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text-3);
+    position: relative; z-index: 1;
+  }
+  .cover-bot .pages { font-size: 13px; color: var(--text-2); }
+  .cover-bot .arrow {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--accent); display: grid; place-items: center;
+    color: var(--on-accent);
+  }
+
+  /* ============= SECTION ============= */
+  section.chapter {
+    padding: 120px 0;
+    border-top: 1px solid var(--border);
+    position: relative;
+  }
+  .chapter-num {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .chapter-num::before {
+    content: ""; width: 36px; height: 1px; background: var(--accent);
+  }
+  .chapter-h2 {
+    font-size: clamp(36px, 5vw, 64px); font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.025em; margin-bottom: 24px;
+  }
+  .chapter-h2 .em { color: var(--accent); }
+  .chapter-lead {
+    font-size: 19px; color: var(--text-2); max-width: 760px;
+    line-height: 1.6; margin-bottom: 60px;
+  }
+
+  /* ============= 01 — VALUE PROPS ============= */
+  .values-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .value-card {
+    padding: 32px 28px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 16px; min-height: 240px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: border-color 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .value-card:hover { border-color: var(--accent); }
+  .value-card .v-num {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    color: var(--text-4);
+  }
+  .value-card .v-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    display: grid; place-items: center;
+    font-size: 24px; font-weight: 800; margin-bottom: 24px;
+  }
+  .value-card .v-title {
+    font-size: 24px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.015em;
+  }
+  .value-card .v-body {
+    font-size: 14px; color: var(--text-2); line-height: 1.55;
+  }
+
+  /* ============= 02 — PROBLEM ============= */
+  .problem-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
+    align-items: start;
+  }
+  .stat-block {
+    padding: 36px 32px; background: var(--bg-elev); border-radius: 16px;
+    border-left: 4px solid var(--accent);
+  }
+  .stat-block .stat-num {
+    font-size: 64px; font-weight: 800; color: var(--accent);
+    line-height: 1; margin-bottom: 12px; letter-spacing: -0.03em;
+  }
+  .stat-block .stat-label {
+    font-size: 16px; color: var(--text); font-weight: 600; margin-bottom: 8px;
+  }
+  .stat-block .stat-source {
+    font-family: var(--mono); font-size: 11px; color: var(--text-3);
+    letter-spacing: 0.08em;
+  }
+  .pains {
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .pain {
+    padding: 24px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 12px;
+    display: grid; grid-template-columns: 40px 1fr; gap: 18px;
+  }
+  .pain .ico {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--bg-raised);
+    display: grid; place-items: center; font-size: 18px;
+  }
+  .pain .tt { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .pain .dd { font-size: 14px; color: var(--text-2); line-height: 1.5; }
+
+  /* ============= 03 — PERSONA ============= */
+  .personas {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  }
+  .persona {
+    padding: 32px 28px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 16px;
+    position: relative; overflow: hidden;
+  }
+  .persona::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: var(--accent);
+  }
+  .persona.violet::before { background: var(--violet); }
+  .persona.pink::before { background: var(--pink); }
+  .persona-head {
+    display: flex; gap: 16px; align-items: center; margin-bottom: 24px;
+  }
+  .persona-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--violet));
+    display: grid; place-items: center; font-size: 28px;
+  }
+  .persona.violet .persona-avatar { background: linear-gradient(135deg, var(--violet), var(--pink)); }
+  .persona.pink .persona-avatar { background: linear-gradient(135deg, var(--pink), var(--orange)); }
+  .persona-meta .name { font-size: 19px; font-weight: 800; }
+  .persona-meta .meta { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-3); margin-top: 4px; }
+  .persona h4 {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent); margin: 18px 0 10px;
+  }
+  .persona ul { list-style: none; padding: 0; }
+  .persona li {
+    font-size: 13.5px; color: var(--text-2); line-height: 1.55;
+    padding-left: 14px; position: relative; margin-bottom: 6px;
+  }
+  .persona li::before {
+    content: ""; position: absolute; left: 0; top: 9px;
+    width: 6px; height: 1px; background: var(--accent);
+  }
+  .persona-quote {
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border-sub);
+    font-style: italic; color: var(--text); font-size: 14.5px; line-height: 1.5;
+  }
+
+  /* ============= 04 — JOURNEY ============= */
+  .journey {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+    border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+  }
+  .j-step {
+    padding: 28px 22px; background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .j-step:last-child { border-right: 0; }
+  .j-step .step-n {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--accent); margin-bottom: 16px;
+  }
+  .j-step .step-emoji { font-size: 28px; margin-bottom: 10px; }
+  .j-step .step-t { font-size: 17px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.01em; }
+  .j-step .step-action {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+    color: var(--text-3); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .j-step .step-b { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+  .j-step .step-feel {
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
+    font-size: 12px; font-style: italic; color: var(--text-3);
+  }
+
+  /* ============= 05 — IA ============= */
+  .ia-wrap {
+    background: var(--bg-elev); border-radius: 16px; padding: 40px;
+    border: 1px solid var(--border-sub);
+  }
+  svg.diagram { width: 100%; height: auto; }
+
+  /* ============= 06 — FLOWS ============= */
+  .flow-tabs {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-bottom: 32px;
+  }
+  .flow-tab {
+    padding: 18px 20px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 12px;
+  }
+  .flow-tab .ft-num {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .flow-tab .ft-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .flow-tab .ft-desc { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+
+  .flow-diagram {
+    background: var(--bg-elev); border-radius: 16px; padding: 36px;
+    margin-bottom: 16px; border: 1px solid var(--border-sub);
+  }
+  .flow-diagram .flow-h {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }
+  .flow-diagram .flow-t {
+    font-size: 22px; font-weight: 800; margin-bottom: 24px; letter-spacing: -0.01em;
+  }
+
+  /* ============= 07 — SCREENS GALLERY ============= */
+  .screens-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  }
+  .screen-mini {
+    aspect-ratio: 9/19;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-sub);
+    border-radius: 18px;
+    overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+  .sm-cap {
+    position: absolute; top: -28px; left: 0;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text-3);
+  }
+  .sm-cap em { color: var(--text); font-style: normal; font-weight: 600; margin-left: 6px; }
+  .screens-grid > div { position: relative; }
+
+  /* Mini screen content */
+  .mini-status {
+    height: 16px; padding: 0 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 7px; font-weight: 600; color: var(--text);
+  }
+  .mini-h {
+    padding: 6px 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .mini-h .brand { font-size: 11px; font-weight: 800; }
+  .mini-h .brand .z { color: var(--accent); }
+  .mini-cats {
+    display: flex; gap: 5px; padding: 6px 10px; overflow: hidden;
+  }
+  .mini-cat {
+    width: 28px; height: 36px; flex-shrink: 0; display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+  }
+  .mini-cat .icon {
+    width: 22px; height: 22px; border-radius: 999px;
+    background: var(--bg-raised);
+  }
+  .mini-cat.active .icon { background: var(--accent); }
+  .mini-cat .lb { font-size: 6.5px; color: var(--text-3); }
+  .mini-cat.active .lb { color: var(--text); font-weight: 700; }
+  .mini-section-h {
+    font-size: 9px; font-weight: 700; padding: 8px 10px 4px;
+    display: flex; justify-content: space-between;
+  }
+  .mini-section-h .more { color: var(--text-3); font-weight: 400; font-size: 7px; }
+  .mini-feature {
+    margin: 0 10px; aspect-ratio: 16/10;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #3a3a3a, #1a1a1a);
+    position: relative; overflow: hidden;
+  }
+  .mini-feature::before {
+    content: "FREE"; position: absolute; top: 6px; left: 6px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 6px; font-weight: 800; padding: 2px 5px; border-radius: 2px;
+  }
+  .mini-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding: 8px 10px;
+  }
+  .mini-stat {
+    aspect-ratio: 1; border-radius: 6px; background: var(--bg-raised);
+    padding: 6px 5px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .mini-stat.high { background: var(--accent); color: var(--on-accent); }
+  .mini-stat .lb { font-size: 6.5px; opacity: 0.7; }
+  .mini-stat .vl { font-size: 16px; font-weight: 800; line-height: 1; }
+  .mini-stat .cp { font-size: 6px; opacity: 0.7; }
+  .mini-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding: 8px 10px;
+    flex: 1;
+  }
+  .mini-card {
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+    border-radius: 4px; position: relative;
+  }
+  .mini-card::before {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    background: var(--accent); width: 16px; height: 5px; border-radius: 1px;
+  }
+  .mini-tabbar {
+    margin-top: auto; height: 26px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-around;
+  }
+  .mini-tabbar .ti {
+    width: 8px; height: 8px; background: var(--text-4); border-radius: 1px;
+  }
+  .mini-tabbar .ti.active { background: var(--accent); }
+  .mini-tabbar .fab {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    display: grid; place-items: center; font-weight: 800; font-size: 14px;
+    line-height: 1;
+  }
+  /* Variants for different screens */
+  .ms-detail .mini-h { background: linear-gradient(180deg, #2a2a2a, transparent); }
+  .ms-detail .mini-hero {
+    height: 50%; background: linear-gradient(135deg, #444, #1a1a1a);
+    margin-top: -8px; position: relative;
+  }
+  .ms-detail .mini-info {
+    padding: 8px 10px;
+  }
+  .ms-detail .mini-info .badge { background: var(--accent); width: 18px; height: 6px; border-radius: 1px; margin-bottom: 4px; }
+  .ms-detail .mini-info .title { width: 80%; height: 8px; background: var(--text); border-radius: 1px; margin-bottom: 4px; }
+  .ms-detail .mini-info .sub { width: 60%; height: 4px; background: var(--text-3); border-radius: 1px; }
+  .ms-detail .mini-grid-info {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+    padding: 0 10px; margin-top: 8px;
+  }
+  .ms-detail .mini-grid-info > div {
+    aspect-ratio: 2/1; background: var(--bg-raised); border-radius: 4px;
+  }
+  .ms-detail .mini-cta {
+    display: flex; gap: 4px; padding: 8px 10px; margin-top: auto;
+  }
+  .ms-detail .mini-cta .b1 { flex: 1; height: 16px; background: var(--bg-raised); border-radius: 4px; }
+  .ms-detail .mini-cta .b2 { flex: 2; height: 16px; background: var(--accent); border-radius: 4px; }
+
+  .ms-map { background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%); }
+  .ms-map .mini-search { margin: 6px 10px; height: 18px; background: var(--bg-raised); border-radius: 8px; }
+  .ms-map .mini-pins { flex: 1; position: relative; padding: 10px; }
+  .ms-map .pin {
+    position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--accent); background: var(--bg-elev);
+  }
+  .ms-map .pin.violet { border-color: var(--violet); }
+  .ms-map .pin.pink { border-color: var(--pink); }
+  .ms-map .mini-bottom-card {
+    margin: 8px 10px; height: 30px; background: var(--bg-elev);
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+
+  .ms-search .mini-search-bar { margin: 6px 10px; height: 18px; background: var(--bg-raised); border-radius: 4px; }
+  .ms-search .mini-chips {
+    display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 10px;
+  }
+  .ms-search .chip {
+    padding: 3px 8px; height: 14px;
+    background: var(--bg-raised); border-radius: 999px;
+    font-size: 6.5px; color: var(--text-2); display: flex; align-items: center;
+  }
+  .ms-search .mini-list {
+    padding: 4px 10px; flex: 1;
+  }
+  .ms-search .mini-list-row {
+    height: 16px; border-bottom: 1px solid var(--border-sub);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .ms-search .mini-list-row::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--text-3);
+  }
+  .ms-search .mini-list-row::after {
+    content: ""; flex: 1; height: 4px; background: var(--bg-raised); border-radius: 1px;
+  }
+
+  .ms-filter .mini-h .crumb {
+    flex: 1; text-align: center; font-size: 9px; font-weight: 700;
+  }
+  .ms-filter .mini-section {
+    padding: 6px 10px; margin-bottom: 4px;
+  }
+  .ms-filter .mini-section-l { font-size: 7px; color: var(--text-3); margin-bottom: 4px; }
+  .ms-filter .mini-pills {
+    display: flex; gap: 3px; flex-wrap: wrap;
+  }
+  .ms-filter .pill {
+    padding: 2px 6px; height: 12px;
+    background: var(--bg-raised); border-radius: 1px;
+    font-size: 6px; color: var(--text-2); display: flex; align-items: center;
+  }
+  .ms-filter .pill.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .ms-filter .mini-cta-btn {
+    margin: auto 10px 8px; padding: 8px;
+    background: var(--accent); border-radius: 4px;
+    font-size: 8px; font-weight: 800; color: var(--on-accent); text-align: center;
+  }
+
+  .ms-saved .mini-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px 10px; flex: 1;
+  }
+  .ms-saved .mini-grid-2 > div {
+    aspect-ratio: 5/6;
+    background: linear-gradient(135deg, #333, #1a1a1a); border-radius: 4px;
+    position: relative;
+  }
+  .ms-saved .mini-grid-2 > div::before {
+    content: ""; position: absolute; top: 4px; left: 4px;
+    background: var(--accent); width: 14px; height: 5px; border-radius: 1px;
+  }
+
+  .ms-itinerary .mini-tabs {
+    display: flex; gap: 12px; padding: 8px 10px; border-bottom: 1px solid var(--border);
+  }
+  .ms-itinerary .mini-tabs .t {
+    height: 6px; width: 24px; background: var(--text-4); border-radius: 1px;
+  }
+  .ms-itinerary .mini-tabs .t.active { background: var(--text); }
+  .ms-itinerary .mini-day {
+    padding: 8px 10px 4px; font-size: 7px; color: var(--accent);
+    font-weight: 700;
+  }
+  .ms-itinerary .mini-event {
+    padding: 6px 10px; border-bottom: 1px solid var(--border-sub);
+  }
+  .ms-itinerary .mini-event .time { font-size: 6.5px; color: var(--text-3); margin-bottom: 2px; }
+  .ms-itinerary .mini-event .title { height: 6px; width: 70%; background: var(--text); border-radius: 1px; margin-bottom: 2px; }
+  .ms-itinerary .mini-event .place { height: 4px; width: 50%; background: var(--text-3); border-radius: 1px; }
+
+  .ms-my .mini-prof {
+    padding: 14px 10px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .ms-my .mini-prof .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--pink));
+  }
+  .ms-my .mini-prof .info { font-size: 9px; font-weight: 700; }
+  .ms-my .mini-stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+  }
+  .ms-my .mini-stats-row .cell {
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .ms-my .mini-stats-row .cell:last-child { border-right: 0; }
+  .ms-my .mini-stats-row .num { font-size: 13px; font-weight: 800; color: var(--accent); }
+  .ms-my .mini-stats-row .lb { font-size: 6px; color: var(--text-3); }
+  .ms-my .mini-menu {
+    padding: 4px 10px;
+  }
+  .ms-my .mini-menu .row {
+    height: 16px; border-bottom: 1px solid var(--border-sub);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ms-my .mini-menu .row::before {
+    content: ""; height: 4px; width: 40%; background: var(--text); border-radius: 1px;
+  }
+  .ms-my .mini-menu .row::after {
+    content: "›"; color: var(--text-3); font-size: 10px;
+  }
+
+  .ms-onboard {
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(212,255,0,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 60% 70%, rgba(236,72,153,0.25) 0%, transparent 60%),
+      linear-gradient(180deg, #0a0a0a, #000);
+  }
+  .ms-onboard .mini-onb-text {
+    padding: 30px 14px 14px; flex: 1;
+  }
+  .ms-onboard .mini-onb-text .l1 {
+    height: 9px; width: 50%; background: var(--text); border-radius: 1px; margin-bottom: 5px;
+  }
+  .ms-onboard .mini-onb-text .l2 {
+    height: 9px; width: 70%; background: var(--accent); border-radius: 1px; margin-bottom: 5px;
+  }
+  .ms-onboard .mini-onb-text .l3 {
+    height: 9px; width: 80%; background: var(--text); border-radius: 1px; margin-bottom: 18px;
+  }
+  .ms-onboard .mini-onb-text .sub {
+    height: 4px; width: 60%; background: var(--text-3); border-radius: 1px; margin-bottom: 3px;
+  }
+  .ms-onboard .mini-onb-text .sub2 {
+    height: 4px; width: 50%; background: var(--text-3); border-radius: 1px;
+  }
+  .ms-onboard .mini-onb-bot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px;
+  }
+  .ms-onboard .dots { display: flex; gap: 3px; }
+  .ms-onboard .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-3); }
+  .ms-onboard .dot.active { background: var(--accent); width: 12px; border-radius: 1px; }
+  .ms-onboard .arrow {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+    color: var(--on-accent); display: grid; place-items: center; font-weight: 800; font-size: 12px;
+  }
+
+  .ms-empty {
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 30px;
+  }
+  .ms-empty .ill {
+    width: 60px; height: 60px;
+    background: var(--bg-raised); border-radius: 8px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .ms-empty .ill::after {
+    content: ""; position: absolute; top: 14px; right: -4px;
+    width: 12px; height: 16px; background: var(--accent); border-radius: 1px;
+  }
+  .ms-empty .et {
+    height: 6px; width: 60%; background: var(--text); border-radius: 1px; margin-bottom: 4px;
+  }
+  .ms-empty .ed {
+    height: 4px; width: 80%; background: var(--text-3); border-radius: 1px; margin-bottom: 12px;
+  }
+  .ms-empty .eb {
+    width: 80%; height: 14px; background: var(--accent); border-radius: 4px;
+  }
+
+  /* ============= 08 — DESIGN SYSTEM ============= */
+  .ds-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  .ds-card {
+    padding: 32px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 16px;
+  }
+  .ds-card h3 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+  }
+  .ds-colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .ds-swatch {
+    border-radius: 8px; overflow: hidden;
+  }
+  .ds-swatch .chip { aspect-ratio: 1; }
+  .ds-swatch .meta { padding: 8px; background: var(--bg-raised); }
+  .ds-swatch .name { font-family: var(--mono); font-size: 10px; font-weight: 600; }
+  .ds-swatch .hex { font-family: var(--mono); font-size: 9px; color: var(--text-3); }
+
+  .ds-type-row {
+    padding: 14px 0; border-bottom: 1px solid var(--border-sub);
+    display: grid; grid-template-columns: 2fr 1fr;
+    align-items: baseline;
+  }
+  .ds-type-row:last-child { border-bottom: 0; }
+  .ds-type-name {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+    color: var(--text-3); text-align: right;
+  }
+
+  /* ============= 09 — TECH STACK ============= */
+  .tech-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+  .tech-card {
+    padding: 24px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 12px;
+  }
+  .tech-card .layer {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .tech-card .name { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .tech-card .desc { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+
+  /* ============= 10 — ROADMAP ============= */
+  .roadmap {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  }
+  .phase {
+    padding: 32px 28px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 16px; position: relative;
+  }
+  .phase.now { border-color: var(--accent); }
+  .phase.now::after {
+    content: "현재"; position: absolute; top: 18px; right: 18px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .phase .ph-num {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .phase .ph-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .phase .ph-period { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 18px; }
+  .phase ul { list-style: none; }
+  .phase li {
+    padding: 10px 0; border-bottom: 1px solid var(--border-sub);
+    font-size: 13.5px; color: var(--text-2); display: flex; gap: 10px;
+  }
+  .phase li::before { content: "→"; color: var(--accent); flex-shrink: 0; }
+
+  /* ============= 11 — METRICS ============= */
+  .metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  .metric-card {
+    padding: 28px; background: var(--bg-elev); border: 1px solid var(--border-sub);
+    border-radius: 12px;
+  }
+  .metric-card .m-cat {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .metric-card .m-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .metric-card .m-target { font-size: 24px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+  .metric-card .m-desc { font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
+
+  /* ============= COLOPHON ============= */
+  footer.colophon {
+    padding: 80px 0 60px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+  footer .big {
+    font-size: clamp(36px, 5vw, 64px); font-weight: 800;
+    letter-spacing: -0.025em; margin-bottom: 24px; line-height: 1.05;
+  }
+  footer .big .em { color: var(--accent); }
+  footer .meta {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-3);
+  }
+
+  /* ============= RESPONSIVE ============= */
+  @media (max-width: 980px) {
+    .values-grid { grid-template-columns: repeat(2, 1fr); }
+    .problem-grid { grid-template-columns: 1fr; gap: 32px; }
+    .personas { grid-template-columns: 1fr; }
+    .journey { grid-template-columns: 1fr; }
+    .j-step { border-right: 0; border-bottom: 1px solid var(--border); }
+    .j-step:last-child { border-bottom: 0; }
+    .flow-tabs { grid-template-columns: 1fr 1fr; }
+    .screens-grid { grid-template-columns: repeat(2, 1fr); }
+    .ds-grid { grid-template-columns: 1fr; }
+    .tech-grid { grid-template-columns: 1fr; }
+    .roadmap { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .ds-colors { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============================================ -->
+  <!-- COVER                                       -->
+  <!-- ============================================ -->
+  <section class="cover">
+    <div class="wrap cover-top">
+      <span>POOMGYEOK · Service Proposal 2026</span>
+      <div class="right">
+        <span>v1.0</span>
+        <span>2026.05.07</span>
+      </div>
+    </div>
+
+    <div class="wrap cover-mid">
+      <div class="label">Service Proposal</div>
+      <h1>
+        <span class="zero">0</span>원의<br/>품격<span class="light">.</span>
+      </h1>
+      <p class="tagline">
+        좋은 문화는 <span class="em">누구에게나</span><br/>
+        열려 있어야 하니까.
+      </p>
+      <p class="deck">
+        무료·저렴한 전시·공연·클래스를 위치 기반으로 큐레이션해주는<br/>
+        다크 테마 모바일 큐레이션 서비스 — 전체 서비스 기획서.
+      </p>
+    </div>
+
+    <div class="wrap cover-bot">
+      <span>Index · 11 sections · 12 screens · 4 user flows</span>
+      <span class="pages">Scroll →</span>
+      <div class="arrow">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 01 — VALUE PROPOSITION                     -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">01 — Value Proposition</div>
+      <h2 class="chapter-h2">
+        네 가지 <span class="em">약속</span>으로<br/>
+        문화의 문턱을 낮춥니다.
+      </h2>
+      <p class="chapter-lead">
+        "거지문화생활"이라는 자조적 표현이 SNS 트렌드가 된 시대. 우리는 이를 자기비하가 아닌 자부심으로 바꾼다. 0원으로도 충분히 품격 있는 문화생활이 가능하다는 것을 증명하는 네 가지 약속.
+      </p>
+
+      <div class="values-grid">
+        <div class="value-card">
+          <div class="v-num">VALUE 01</div>
+          <div>
+            <div class="v-icon">₩0</div>
+            <div class="v-title">무료</div>
+            <div class="v-body">0원으로 즐기는 문화생활. 입장료가 없는 전시·공연·공간을 모두 모았습니다.</div>
+          </div>
+        </div>
+        <div class="value-card">
+          <div class="v-num">VALUE 02</div>
+          <div>
+            <div class="v-icon">⌕</div>
+            <div class="v-title">발견</div>
+            <div class="v-body">취향을 찾는 새로운 시선. 알고리즘이 아닌 큐레이터가 고른 깊이 있는 추천.</div>
+          </div>
+        </div>
+        <div class="value-card">
+          <div class="v-num">VALUE 03</div>
+          <div>
+            <div class="v-icon">♡</div>
+            <div class="v-title">저장</div>
+            <div class="v-body">나만의 리스트로 정리. 가고 싶은 곳을 모으고, 다녀온 곳을 아카이브합니다.</div>
+          </div>
+        </div>
+        <div class="value-card">
+          <div class="v-num">VALUE 04</div>
+          <div>
+            <div class="v-icon">◉</div>
+            <div class="v-title">가까이</div>
+            <div class="v-body">지금, 내 주변에서. 위치 기반으로 즉시 갈 수 있는 곳을 우선 노출합니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 02 — PROBLEM                                -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">02 — Problem & Opportunity</div>
+      <h2 class="chapter-h2">
+        문화는 비싸지 않다.<br/>
+        <span class="em">정보가</span> 비쌌을 뿐.
+      </h2>
+      <p class="chapter-lead">
+        대한민국에는 매년 수천 건의 무료·저렴한 문화 행사가 열린다. 하지만 흩어진 정보, 단조로운 큐레이션, 발견 비용의 부담이 사용자를 가로막는다.
+      </p>
+
+      <div class="problem-grid">
+        <div>
+          <div class="stat-block">
+            <div class="stat-num">73%</div>
+            <div class="stat-label">"문화생활은 비싸다"고 응답한 20대 비율</div>
+            <div class="stat-source">SOURCE · 문화체육관광부 2024 국민여가활동조사</div>
+          </div>
+          <div class="stat-block" style="margin-top:14px;">
+            <div class="stat-num">2,400+</div>
+            <div class="stat-label">전국 연간 무료 전시·공연 (집계 기준)</div>
+            <div class="stat-source">SOURCE · 문화포털 2024 통계</div>
+          </div>
+        </div>
+        <div class="pains">
+          <div class="pain">
+            <div class="ico">⊕</div>
+            <div>
+              <div class="tt">정보가 흩어져 있다</div>
+              <div class="dd">기관별 홈페이지, SNS, 블로그에 분산. 한 곳에 모인 큐레이션 서비스가 부재.</div>
+            </div>
+          </div>
+          <div class="pain">
+            <div class="ico">⊗</div>
+            <div>
+              <div class="tt">예산 필터가 없다</div>
+              <div class="dd">기존 서비스는 전체 행사를 보여줄 뿐, "내 예산에 맞는 것"만 빠르게 찾기 어려움.</div>
+            </div>
+          </div>
+          <div class="pain">
+            <div class="ico">⊘</div>
+            <div>
+              <div class="tt">위치 기반 큐레이션 부재</div>
+              <div class="dd">"지금 내 주변에서 갈 수 있는 무료 행사"를 즉시 찾는 도구가 없음.</div>
+            </div>
+          </div>
+          <div class="pain">
+            <div class="ico">⊜</div>
+            <div>
+              <div class="tt">선착순·마감 정보 누락</div>
+              <div class="dd">무료 행사는 선착순이 많지만 잔여석 알림이 없어 놓치는 경우 빈번.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 03 — PERSONAS                              -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">03 — Target Personas</div>
+      <h2 class="chapter-h2">세 명의 <span class="em">사용자</span>.</h2>
+      <p class="chapter-lead">
+        앱이 가장 가까이 다가가야 할 세 페르소나. 이들의 하루에 자연스럽게 녹아드는 도구가 되는 것이 목표.
+      </p>
+
+      <div class="personas">
+        <div class="persona">
+          <div class="persona-head">
+            <div class="persona-avatar">🎓</div>
+            <div class="persona-meta">
+              <div class="name">서지윤</div>
+              <div class="meta">대학생 · 23 · 마포구</div>
+            </div>
+          </div>
+          <h4>Goals</h4>
+          <ul>
+            <li>주말마다 새로운 곳 가기</li>
+            <li>SNS에 올릴 의미있는 콘텐츠</li>
+            <li>월 5만원 이하로 문화생활</li>
+          </ul>
+          <h4>Frustrations</h4>
+          <ul>
+            <li>인스타그램 큐레이션은 광고가 많음</li>
+            <li>가서 보니 유료라 실망</li>
+            <li>친구마다 추천이 달라 기준 모호</li>
+          </ul>
+          <div class="persona-quote">"무료라고 해서 갔는데 입장료 1만 8천원이래요. 진짜 무료만 모아주는 앱이 있었으면."</div>
+        </div>
+        <div class="persona violet">
+          <div class="persona-head">
+            <div class="persona-avatar">💼</div>
+            <div class="persona-meta">
+              <div class="name">박현수</div>
+              <div class="meta">직장인 · 31 · 종로구</div>
+            </div>
+          </div>
+          <h4>Goals</h4>
+          <ul>
+            <li>점심시간·퇴근 후 짧은 여가</li>
+            <li>회사 근처에서 빠르게 즐길 거리</li>
+            <li>스트레스 해소 + 문화 충전</li>
+          </ul>
+          <h4>Frustrations</h4>
+          <ul>
+            <li>퇴근 후엔 이미 마감인 경우 많음</li>
+            <li>예약 절차가 복잡함</li>
+            <li>지도 앱은 행사 정보가 부실</li>
+          </ul>
+          <div class="persona-quote">"점심에 잠깐 다녀올 수 있는 무료 전시 같은 게 회사 반경 1km 안에 분명 있을 텐데..."</div>
+        </div>
+        <div class="persona pink">
+          <div class="persona-head">
+            <div class="persona-avatar">👨‍👩‍👧</div>
+            <div class="persona-meta">
+              <div class="name">김민지</div>
+              <div class="meta">학부모 · 38 · 성동구</div>
+            </div>
+          </div>
+          <h4>Goals</h4>
+          <ul>
+            <li>주말 아이와 가는 무료 체험</li>
+            <li>교육적 가치가 있는 행사</li>
+            <li>차로 30분 이내 거리</li>
+          </ul>
+          <h4>Frustrations</h4>
+          <ul>
+            <li>맘카페 정보는 시기에 뒤짐</li>
+            <li>아이 동반 가능 여부 모호</li>
+            <li>주차·편의시설 정보 부족</li>
+          </ul>
+          <div class="persona-quote">"매주 어디 갈지 검색하느라 토요일 오전이 다 지나가요. 이걸 미리 정리해주는 곳이 있으면."</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 04 — USER JOURNEY                          -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">04 — User Journey Map</div>
+      <h2 class="chapter-h2">
+        인지에서 <span class="em">재방문</span>까지.
+      </h2>
+      <p class="chapter-lead">
+        사용자가 앱을 처음 만나는 순간부터 충성 사용자가 되는 다섯 단계. 각 단계마다 감정과 핵심 액션, 우리의 개입 지점을 명시한다.
+      </p>
+
+      <div class="journey">
+        <div class="j-step">
+          <div class="step-n">STAGE 01</div>
+          <div class="step-emoji">👀</div>
+          <div class="step-t">인지 (Awareness)</div>
+          <div class="step-action">SNS · 친구 추천</div>
+          <div class="step-b">"거지문화생활 큐레이션 앱"이라는 키워드로 인스타그램·X·블로그에서 인지. 친구 공유로 다운로드.</div>
+          <div class="step-feel">"오 이런 게 있었네?"</div>
+        </div>
+        <div class="j-step">
+          <div class="step-n">STAGE 02</div>
+          <div class="step-emoji">🚪</div>
+          <div class="step-t">진입 (Onboarding)</div>
+          <div class="step-action">위치 권한 · 관심 선택</div>
+          <div class="step-b">3단계 온보딩으로 위치·관심 카테고리·예산 범위 설정. 첫 화면에서 즉시 "오늘의 추천"을 만남.</div>
+          <div class="step-feel">"내 취향대로 보여줘서 좋네"</div>
+        </div>
+        <div class="j-step">
+          <div class="step-n">STAGE 03</div>
+          <div class="step-emoji">🔖</div>
+          <div class="step-t">발견·저장 (Discover)</div>
+          <div class="step-action">필터 · 저장 · 알림</div>
+          <div class="step-b">카테고리·가격·날짜로 필터링. 가고 싶은 곳을 저장하고 마감 임박 알림을 받음.</div>
+          <div class="step-feel">"진짜 무료가 이렇게 많구나"</div>
+        </div>
+        <div class="j-step">
+          <div class="step-n">STAGE 04</div>
+          <div class="step-emoji">🎨</div>
+          <div class="step-t">참여 (Experience)</div>
+          <div class="step-action">길찾기 · 예약 · 방문</div>
+          <div class="step-b">예약하기 버튼으로 외부 사이트 연결, 또는 지도 앱으로 길찾기 인앱 연동. 현장 도착 후 체크인.</div>
+          <div class="step-feel">"실제로 가보니 좋은 곳이었어"</div>
+        </div>
+        <div class="j-step">
+          <div class="step-n">STAGE 05</div>
+          <div class="step-emoji">↻</div>
+          <div class="step-t">재방문 (Retention)</div>
+          <div class="step-action">후기 · 공유 · 재탐색</div>
+          <div class="step-b">간단한 별점·후기 남기고, "0원으로 다녀온 인증"으로 SNS 자동 공유 카드 생성. 다음 행사 추천 받음.</div>
+          <div class="step-feel">"매주 토요일 아침에 한번씩 봐야지"</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 05 — INFORMATION ARCHITECTURE              -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">05 — Information Architecture</div>
+      <h2 class="chapter-h2">
+        하나의 앱, <span class="em">12개의 화면</span>.
+      </h2>
+      <p class="chapter-lead">
+        5개의 메인 탭과 7개의 서브 화면. 모든 화면이 명확한 진입 경로와 빠져나오는 길을 갖는다.
+      </p>
+
+      <div class="ia-wrap">
+        <svg class="diagram" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#7A7A7A"/>
+            </marker>
+            <marker id="arrowAccent" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#D4FF00"/>
+            </marker>
+          </defs>
+
+          <!-- Root -->
+          <rect x="500" y="20" width="200" height="60" rx="12" fill="#D4FF00"/>
+          <text x="600" y="48" text-anchor="middle" font-family="Pretendard" font-size="14" font-weight="800" fill="#0A0A0A">0원의 품격</text>
+          <text x="600" y="66" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#0A0A0A" letter-spacing="2">ROOT</text>
+
+          <!-- Onboarding (initial) -->
+          <rect x="220" y="120" width="160" height="50" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="300" y="140" text-anchor="middle" font-family="Pretendard" font-size="12" font-weight="700" fill="#FFFFFF">11. 온보딩</text>
+          <text x="300" y="156" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">ONBOARDING</text>
+
+          <!-- Tabs container -->
+          <rect x="100" y="220" width="1000" height="220" rx="14" fill="none" stroke="#2E2E2E" stroke-dasharray="4,4"/>
+          <text x="120" y="240" font-family="JetBrains Mono" font-size="10" fill="#7A7A7A" letter-spacing="2">MAIN TABS</text>
+
+          <!-- Tab 1 -->
+          <rect x="130" y="270" width="170" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="215" y="295" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">01. 피드</text>
+          <text x="215" y="313" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">FEED</text>
+
+          <!-- Tab 2 -->
+          <rect x="320" y="270" width="170" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="405" y="295" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">03. 지도</text>
+          <text x="405" y="313" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">MAP</text>
+
+          <!-- Tab 3 (FAB) -->
+          <circle cx="600" cy="300" r="32" fill="#D4FF00"/>
+          <text x="600" y="306" text-anchor="middle" font-family="Pretendard" font-size="22" font-weight="900" fill="#0A0A0A">+</text>
+
+          <!-- Tab 4 -->
+          <rect x="710" y="270" width="170" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="795" y="295" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">06. 저장함</text>
+          <text x="795" y="313" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">SAVED</text>
+
+          <!-- Tab 5 -->
+          <rect x="900" y="270" width="170" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="985" y="295" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">08. 마이</text>
+          <text x="985" y="313" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">MY</text>
+
+          <!-- FAB sub -->
+          <rect x="540" y="370" width="120" height="40" rx="8" fill="#252525"/>
+          <text x="600" y="395" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="600" fill="#B5B5B5">행사 제보 / 후기</text>
+
+          <!-- Stack Screens (below) -->
+          <text x="600" y="490" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#7A7A7A" letter-spacing="2">STACK / MODAL SCREENS</text>
+
+          <rect x="50" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="120" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">02. 상세</text>
+          <text x="120" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">DETAIL</text>
+
+          <rect x="210" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="280" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">04. 검색</text>
+          <text x="280" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">SEARCH</text>
+
+          <rect x="370" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="440" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">05. 필터</text>
+          <text x="440" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">FILTER</text>
+
+          <rect x="530" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="600" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">07. 일정</text>
+          <text x="600" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">ITINERARY</text>
+
+          <rect x="690" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="760" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">09. 설정</text>
+          <text x="760" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">SETTINGS</text>
+
+          <rect x="850" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="920" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">10. 알림</text>
+          <text x="920" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">NOTIFICATIONS</text>
+
+          <rect x="1010" y="510" width="140" height="50" rx="8" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="1080" y="532" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#FFFFFF">12. 빈 상태</text>
+          <text x="1080" y="548" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#7A7A7A">EMPTY</text>
+
+          <!-- Lines -->
+          <path d="M 600 80 L 600 110 L 380 145" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)"/>
+          <path d="M 380 145 L 600 200 L 600 220" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 600 80 L 600 220" stroke="#D4FF00" stroke-width="2" fill="none" marker-end="url(#arrowAccent)"/>
+
+          <!-- Tab to detail/etc lines -->
+          <path d="M 215 330 L 215 470 L 120 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 215 330 L 280 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 405 330 L 440 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 985 330 L 600 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 985 330 L 760 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 985 330 L 920 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+          <path d="M 795 330 L 1080 510" stroke="#7A7A7A" stroke-width="1" fill="none" marker-end="url(#arrow)" stroke-dasharray="3,3"/>
+
+          <path d="M 600 332 L 600 370" stroke="#D4FF00" stroke-width="2" fill="none" marker-end="url(#arrowAccent)"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 06 — USER FLOWS                            -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">06 — User Flows</div>
+      <h2 class="chapter-h2">
+        네 가지 <span class="em">시나리오</span>.
+      </h2>
+      <p class="chapter-lead">
+        실제 사용자가 앱을 사용하는 가장 핵심적인 4개 시나리오. 각 화면 간 이동과 분기점, 의사결정 지점이 명시됨.
+      </p>
+
+      <div class="flow-tabs">
+        <div class="flow-tab"><div class="ft-num">FLOW 01</div><div class="ft-title">첫 진입 ~ 첫 발견</div><div class="ft-desc">신규 사용자가 앱을 처음 켜고 5분 안에 첫 추천을 만남</div></div>
+        <div class="flow-tab"><div class="ft-num">FLOW 02</div><div class="ft-title">탐색 ~ 예약</div><div class="ft-desc">행사 발견부터 외부 예약 완료까지의 핵심 전환 흐름</div></div>
+        <div class="flow-tab"><div class="ft-num">FLOW 03</div><div class="ft-title">저장 ~ 일정 관리</div><div class="ft-desc">관심 행사 저장 후 일정 추적 및 알림 받기</div></div>
+        <div class="flow-tab"><div class="ft-num">FLOW 04</div><div class="ft-title">정밀 검색 ~ 결과</div><div class="ft-desc">필터를 활용한 조건 기반 검색 흐름</div></div>
+      </div>
+
+      <!-- Flow 01 -->
+      <div class="flow-diagram">
+        <div class="flow-h">FLOW 01</div>
+        <div class="flow-t">첫 진입 → 첫 발견</div>
+        <svg class="diagram" viewBox="0 0 1200 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#D4FF00"/></marker>
+          </defs>
+          <!-- Steps -->
+          <rect x="20"   y="80" width="140" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="90" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">앱 실행</text>
+          <text x="90" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">SPLASH</text>
+
+          <rect x="200" y="80" width="140" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="270" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">온보딩 1</text>
+          <text x="270" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">VALUE PROP</text>
+
+          <rect x="380" y="80" width="140" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="450" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">위치 권한</text>
+          <text x="450" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">PERMISSION</text>
+
+          <rect x="560" y="80" width="140" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="630" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">관심 카테고리</text>
+          <text x="630" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">INTERESTS</text>
+
+          <rect x="740" y="80" width="140" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="810" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">피드</text>
+          <text x="810" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">FEED</text>
+
+          <rect x="920" y="80" width="140" height="60" rx="10" fill="#D4FF00" stroke="#D4FF00"/>
+          <text x="990" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="800" fill="#0A0A0A">오늘의 추천</text>
+          <text x="990" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#0A0A0A">DISCOVERY</text>
+
+          <!-- arrows -->
+          <line x1="160" y1="110" x2="200" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar1)"/>
+          <line x1="340" y1="110" x2="380" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar1)"/>
+          <line x1="520" y1="110" x2="560" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar1)"/>
+          <line x1="700" y1="110" x2="740" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar1)"/>
+          <line x1="880" y1="110" x2="920" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar1)"/>
+
+          <text x="600" y="180" text-anchor="middle" font-family="Pretendard" font-size="13" font-style="italic" fill="#7A7A7A">예상 시간 · 90초 ~ 3분</text>
+        </svg>
+      </div>
+
+      <!-- Flow 02 -->
+      <div class="flow-diagram">
+        <div class="flow-h">FLOW 02</div>
+        <div class="flow-t">탐색 → 예약</div>
+        <svg class="diagram" viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#D4FF00"/></marker>
+            <marker id="ar2g" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7A7A7A"/></marker>
+          </defs>
+
+          <rect x="20" y="20" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="100" y="46" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">피드</text>
+          <text x="100" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">FEED</text>
+
+          <!-- 분기 -->
+          <rect x="240" y="20" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="320" y="46" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">카드 탭</text>
+          <text x="320" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">CARD PRESS</text>
+
+          <rect x="240" y="120" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="320" y="146" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">지도에서 탐색</text>
+          <text x="320" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">MAP</text>
+
+          <rect x="240" y="220" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="320" y="246" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">검색</text>
+          <text x="320" y="264" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">SEARCH</text>
+
+          <rect x="460" y="120" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="540" y="146" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">상세</text>
+          <text x="540" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">DETAIL</text>
+
+          <rect x="680" y="60" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="760" y="86" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">저장</text>
+          <text x="760" y="104" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">SAVE</text>
+
+          <rect x="680" y="180" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="760" y="206" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">길찾기</text>
+          <text x="760" y="224" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">DIRECTIONS</text>
+
+          <rect x="900" y="120" width="160" height="60" rx="10" fill="#D4FF00" stroke="#D4FF00"/>
+          <text x="980" y="146" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="800" fill="#0A0A0A">예약 완료</text>
+          <text x="980" y="164" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#0A0A0A">RESERVED</text>
+
+          <!-- arrows -->
+          <line x1="180" y1="50" x2="240" y2="50" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar2)"/>
+          <line x1="180" y1="50" x2="240" y2="150" stroke="#7A7A7A" stroke-width="1" marker-end="url(#ar2g)" stroke-dasharray="4,4"/>
+          <line x1="180" y1="50" x2="240" y2="250" stroke="#7A7A7A" stroke-width="1" marker-end="url(#ar2g)" stroke-dasharray="4,4"/>
+
+          <line x1="400" y1="50" x2="460" y2="140" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar2)"/>
+          <line x1="400" y1="150" x2="460" y2="150" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar2)"/>
+          <line x1="400" y1="250" x2="460" y2="160" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar2)"/>
+
+          <line x1="620" y1="140" x2="680" y2="90" stroke="#7A7A7A" stroke-width="1" marker-end="url(#ar2g)" stroke-dasharray="4,4"/>
+          <line x1="620" y1="160" x2="680" y2="210" stroke="#7A7A7A" stroke-width="1" marker-end="url(#ar2g)" stroke-dasharray="4,4"/>
+          <line x1="620" y1="150" x2="900" y2="150" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar2)"/>
+
+          <text x="600" y="295" text-anchor="middle" font-family="Pretendard" font-size="13" font-style="italic" fill="#7A7A7A">3가지 진입 경로 · 단일 전환 목적지</text>
+        </svg>
+      </div>
+
+      <!-- Flow 03 -->
+      <div class="flow-diagram">
+        <div class="flow-h">FLOW 03</div>
+        <div class="flow-t">저장 → 일정 관리</div>
+        <svg class="diagram" viewBox="0 0 1200 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#D4FF00"/></marker>
+          </defs>
+          <rect x="20" y="80" width="150" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="95" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">상세에서 저장</text>
+          <text x="95" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">SAVE</text>
+
+          <rect x="210" y="80" width="150" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="285" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">저장함</text>
+          <text x="285" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">SAVED</text>
+
+          <rect x="400" y="80" width="150" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="475" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">캘린더 추가</text>
+          <text x="475" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">CALENDAR</text>
+
+          <rect x="590" y="80" width="150" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="665" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">일정</text>
+          <text x="665" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">ITINERARY</text>
+
+          <rect x="780" y="80" width="170" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="865" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">D-day 알림</text>
+          <text x="865" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">PUSH</text>
+
+          <rect x="990" y="80" width="190" height="60" rx="10" fill="#D4FF00"/>
+          <text x="1085" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="800" fill="#0A0A0A">현장 방문</text>
+          <text x="1085" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#0A0A0A">VISIT</text>
+
+          <line x1="170" y1="110" x2="210" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar3)"/>
+          <line x1="360" y1="110" x2="400" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar3)"/>
+          <line x1="550" y1="110" x2="590" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar3)"/>
+          <line x1="740" y1="110" x2="780" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar3)"/>
+          <line x1="950" y1="110" x2="990" y2="110" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar3)"/>
+
+          <text x="600" y="180" text-anchor="middle" font-family="Pretendard" font-size="13" font-style="italic" fill="#7A7A7A">평균 사이클 · 3~14일</text>
+        </svg>
+      </div>
+
+      <!-- Flow 04 -->
+      <div class="flow-diagram">
+        <div class="flow-h">FLOW 04</div>
+        <div class="flow-t">정밀 검색 → 결과</div>
+        <svg class="diagram" viewBox="0 0 1200 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar4" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#D4FF00"/></marker>
+          </defs>
+          <rect x="20"  y="80" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#D4FF00"/>
+          <text x="100" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">검색 / 필터 진입</text>
+          <text x="100" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#D4FF00">ENTRY</text>
+
+          <rect x="220" y="20" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="300" y="46" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">키워드 검색</text>
+          <text x="300" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">KEYWORD</text>
+
+          <rect x="220" y="140" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="300" y="166" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">필터 적용</text>
+          <text x="300" y="184" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">FILTER</text>
+
+          <rect x="420" y="80" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="500" y="105" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">결과 리스트</text>
+          <text x="500" y="124" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">RESULTS</text>
+
+          <rect x="620" y="20" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="700" y="46" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">결과 있음</text>
+          <text x="700" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">SUCCESS</text>
+
+          <rect x="620" y="140" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="700" y="166" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">결과 없음</text>
+          <text x="700" y="184" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">EMPTY</text>
+
+          <rect x="820" y="20" width="160" height="60" rx="10" fill="#D4FF00"/>
+          <text x="900" y="46" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="800" fill="#0A0A0A">상세 진입</text>
+          <text x="900" y="64" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#0A0A0A">DETAIL</text>
+
+          <rect x="820" y="140" width="160" height="60" rx="10" fill="#1F1F1F" stroke="#2E2E2E"/>
+          <text x="900" y="166" text-anchor="middle" font-family="Pretendard" font-size="13" font-weight="700" fill="#FFFFFF">조건 완화 제안</text>
+          <text x="900" y="184" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#7A7A7A">SUGGEST</text>
+
+          <line x1="180" y1="110" x2="220" y2="50" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="180" y1="110" x2="220" y2="170" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="380" y1="50" x2="420" y2="100" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="380" y1="170" x2="420" y2="120" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="580" y1="100" x2="620" y2="50" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="580" y1="120" x2="620" y2="170" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="780" y1="50" x2="820" y2="50" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+          <line x1="780" y1="170" x2="820" y2="170" stroke="#D4FF00" stroke-width="2" marker-end="url(#ar4)"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 07 — UI SCREENS                            -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">07 — UI Screens</div>
+      <h2 class="chapter-h2">
+        12개의 <span class="em">화면</span>.
+      </h2>
+      <p class="chapter-lead">
+        디자이너가 그린 12개 화면 한눈에. 사용자 여정의 모든 분기점을 다크 테마와 라임 액센트로 일관되게 표현했다.
+      </p>
+
+      <div class="screens-grid">
+
+        <div>
+          <div class="sm-cap">01<em>Feed</em></div>
+          <div class="screen-mini">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-h"><span class="brand"><span class="z">0</span>원의 품격</span><span style="font-size:10px;">⌕ ◎</span></div>
+            <div class="mini-cats">
+              <div class="mini-cat active"><div class="icon"></div><div class="lb">전체</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">전시</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">공연</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">클래스</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">행사</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">공간</div></div>
+            </div>
+            <div class="mini-section-h">오늘의 추천 <span class="more">더보기 ›</span></div>
+            <div class="mini-feature"></div>
+            <div class="mini-stats">
+              <div class="mini-stat high"><div class="lb">오늘 무료</div><div class="vl">12</div><div class="cp">예약 가능</div></div>
+              <div class="mini-stat"><div class="lb">만원 이하</div><div class="vl">28</div><div class="cp">가성비</div></div>
+              <div class="mini-stat"><div class="lb">주말 추천</div><div class="vl">43</div><div class="cp">이번 주말</div></div>
+            </div>
+            <div class="mini-section-h">가까운 무료 공간 <span class="more">전체 ›</span></div>
+            <div class="mini-grid">
+              <div class="mini-card"></div><div class="mini-card"></div><div class="mini-card"></div>
+            </div>
+            <div class="mini-tabbar">
+              <div class="ti active"></div><div class="ti"></div><div class="fab">+</div><div class="ti"></div><div class="ti"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">02<em>Detail</em></div>
+          <div class="screen-mini ms-detail">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-h"><span style="font-size:10px;">‹</span><span></span><span style="font-size:10px;">↗ ⤴</span></div>
+            <div class="mini-hero"></div>
+            <div class="mini-info">
+              <div class="badge"></div>
+              <div class="title"></div>
+              <div class="sub"></div>
+            </div>
+            <div class="mini-grid-info"><div></div><div></div><div></div></div>
+            <div class="mini-cta"><div class="b1"></div><div class="b2"></div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">03<em>Map</em></div>
+          <div class="screen-mini ms-map">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-search"></div>
+            <div class="mini-cats">
+              <div class="mini-cat active"><div class="icon"></div><div class="lb">전체</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">전시</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">공연</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">클래스</div></div>
+              <div class="mini-cat"><div class="icon"></div><div class="lb">공간</div></div>
+            </div>
+            <div class="mini-pins">
+              <div class="pin" style="top:18%;left:30%;"></div>
+              <div class="pin violet" style="top:35%;left:60%;"></div>
+              <div class="pin pink" style="top:50%;left:25%;"></div>
+              <div class="pin" style="top:65%;left:70%;"></div>
+              <div class="pin violet" style="top:75%;left:45%;"></div>
+            </div>
+            <div class="mini-bottom-card"></div>
+            <div class="mini-tabbar">
+              <div class="ti"></div><div class="ti active"></div><div class="fab">+</div><div class="ti"></div><div class="ti"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">04<em>Search</em></div>
+          <div class="screen-mini ms-search">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-search-bar"></div>
+            <div class="mini-section-h">최근 검색 <span class="more">지우기</span></div>
+            <div class="mini-chips">
+              <div class="chip">전시</div>
+              <div class="chip">서울시립미술관</div>
+              <div class="chip">무료전시</div>
+            </div>
+            <div class="mini-section-h">추천 검색어</div>
+            <div class="mini-list">
+              <div class="mini-list-row"></div>
+              <div class="mini-list-row"></div>
+              <div class="mini-list-row"></div>
+              <div class="mini-list-row"></div>
+              <div class="mini-list-row"></div>
+              <div class="mini-list-row"></div>
+            </div>
+            <div class="mini-tabbar">
+              <div class="ti"></div><div class="ti"></div><div class="fab">+</div><div class="ti"></div><div class="ti"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">05<em>Filter</em></div>
+          <div class="screen-mini ms-filter">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-h"><span style="font-size:10px;">‹</span><span class="crumb">필터</span><span style="font-size:7px;color:var(--text-3);">초기화</span></div>
+            <div class="mini-section">
+              <div class="mini-section-l">지역</div>
+              <div class="mini-pills">
+                <div class="pill active">전체</div>
+                <div class="pill">서울</div>
+                <div class="pill">경기</div>
+                <div class="pill">인천</div>
+                <div class="pill">부산</div>
+              </div>
+            </div>
+            <div class="mini-section">
+              <div class="mini-section-l">카테고리</div>
+              <div class="mini-pills">
+                <div class="pill active">전체</div>
+                <div class="pill">전시</div>
+                <div class="pill">공연</div>
+                <div class="pill">클래스</div>
+              </div>
+            </div>
+            <div class="mini-section">
+              <div class="mini-section-l">가격</div>
+              <div class="mini-pills">
+                <div class="pill">전체</div>
+                <div class="pill active">무료</div>
+                <div class="pill">1만원 이하</div>
+              </div>
+            </div>
+            <div class="mini-section">
+              <div class="mini-section-l">날짜</div>
+              <div class="mini-pills">
+                <div class="pill active">전체</div>
+                <div class="pill">오늘</div>
+                <div class="pill">이번 주</div>
+              </div>
+            </div>
+            <div class="mini-cta-btn">적용하기</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">06<em>Saved</em></div>
+          <div class="screen-mini ms-saved">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-h"><span class="brand">저장함</span><span style="font-size:8px;color:var(--text-3);">편집</span></div>
+            <div class="mini-chips" style="padding: 6px 10px;">
+              <div class="chip" style="background:var(--accent);color:var(--on-accent);font-weight:700;">전체 12</div>
+              <div class="chip">전시 5</div>
+              <div class="chip">공연 3</div>
+              <div class="chip">행사 2</div>
+            </div>
+            <div class="mini-grid-2">
+              <div></div><div></div><div></div><div></div><div></div><div></div>
+            </div>
+            <div class="mini-tabbar">
+              <div class="ti"></div><div class="ti"></div><div class="fab">+</div><div class="ti active"></div><div class="ti"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">07<em>Itinerary</em></div>
+          <div class="screen-mini ms-itinerary">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-h"><span style="font-size:10px;">‹</span><span class="brand" style="font-size:10px;">나의 일정</span><span></span></div>
+            <div class="mini-tabs"><div class="t active"></div><div class="t"></div></div>
+            <div class="mini-day">오늘 · 5.20</div>
+            <div class="mini-event">
+              <div class="time">10:00 – 18:00</div>
+              <div class="title"></div>
+              <div class="place"></div>
+            </div>
+            <div class="mini-day">6.1 (토)</div>
+            <div class="mini-event">
+              <div class="time">14:00 – 16:00</div>
+              <div class="title"></div>
+              <div class="place"></div>
+            </div>
+            <div class="mini-event">
+              <div class="time">16:00 – 18:00</div>
+              <div class="title"></div>
+              <div class="place"></div>
+            </div>
+            <div class="mini-tabbar">
+              <div class="ti"></div><div class="ti"></div><div class="fab">+</div><div class="ti"></div><div class="ti active"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">08<em>My</em></div>
+          <div class="screen-mini ms-my">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-h"><span class="brand" style="font-size:10px;">설정</span><span style="font-size:10px;">◎</span></div>
+            <div class="mini-prof">
+              <div class="av"></div>
+              <div class="info">@yujin_</div>
+            </div>
+            <div class="mini-stats-row">
+              <div class="cell"><div class="num">128</div><div class="lb">저장</div></div>
+              <div class="cell"><div class="num">36</div><div class="lb">방문</div></div>
+              <div class="cell"><div class="num">24</div><div class="lb">팔로워</div></div>
+            </div>
+            <div class="mini-menu">
+              <div class="row"></div>
+              <div class="row"></div>
+              <div class="row"></div>
+              <div class="row"></div>
+              <div class="row"></div>
+            </div>
+            <div class="mini-tabbar">
+              <div class="ti"></div><div class="ti"></div><div class="fab">+</div><div class="ti"></div><div class="ti active"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">11<em>Onboarding</em></div>
+          <div class="screen-mini ms-onboard">
+            <div class="mini-status"><span>9:41</span><span>···</span></div>
+            <div class="mini-onb-text">
+              <div class="l1"></div>
+              <div class="l2"></div>
+              <div class="l3"></div>
+              <div class="sub"></div>
+              <div class="sub2"></div>
+            </div>
+            <div class="mini-onb-bot">
+              <div class="dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+              <div class="arrow">→</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="sm-cap">12<em>Empty</em></div>
+          <div class="screen-mini ms-empty">
+            <div class="mini-status" style="position:absolute;top:0;left:0;right:0;"><span>9:41</span><span>···</span></div>
+            <div class="ill"></div>
+            <div class="et"></div>
+            <div class="ed"></div>
+            <div class="eb"></div>
+            <div class="mini-tabbar" style="position:absolute;bottom:0;left:0;right:0;">
+              <div class="ti"></div><div class="ti"></div><div class="fab">+</div><div class="ti active"></div><div class="ti"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 08 — DESIGN SYSTEM                         -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">08 — Design System</div>
+      <h2 class="chapter-h2">
+        하나의 <span class="em">언어</span>.
+      </h2>
+      <p class="chapter-lead">
+        다크 테마 + 네온 라임 액센트 + Pretendard. 세 가지가 만들어내는 단단한 디자인 언어로 모든 화면을 통일한다.
+      </p>
+
+      <div class="ds-grid">
+        <div class="ds-card">
+          <h3>Primary Palette</h3>
+          <div class="ds-colors">
+            <div class="ds-swatch"><div class="chip" style="background:#0A0A0A"></div><div class="meta"><div class="name">bg</div><div class="hex">#0A0A0A</div></div></div>
+            <div class="ds-swatch"><div class="chip" style="background:#1F1F1F"></div><div class="meta"><div class="name">bg-elev</div><div class="hex">#1F1F1F</div></div></div>
+            <div class="ds-swatch"><div class="chip" style="background:#FFFFFF"></div><div class="meta"><div class="name">text</div><div class="hex">#FFFFFF</div></div></div>
+            <div class="ds-swatch"><div class="chip" style="background:#B5B5B5"></div><div class="meta"><div class="name">text-2</div><div class="hex">#B5B5B5</div></div></div>
+            <div class="ds-swatch"><div class="chip" style="background:#D4FF00"></div><div class="meta"><div class="name">accent</div><div class="hex">#D4FF00</div></div></div>
+          </div>
+          <h3 style="margin-top:24px;">Secondary (Map Pins)</h3>
+          <div class="ds-colors" style="grid-template-columns: repeat(3,1fr);">
+            <div class="ds-swatch"><div class="chip" style="background:#D4FF00"></div><div class="meta"><div class="name">전시</div><div class="hex">accent</div></div></div>
+            <div class="ds-swatch"><div class="chip" style="background:#8B5CF6"></div><div class="meta"><div class="name">공연</div><div class="hex">violet</div></div></div>
+            <div class="ds-swatch"><div class="chip" style="background:#EC4899"></div><div class="meta"><div class="name">클래스</div><div class="hex">pink</div></div></div>
+          </div>
+        </div>
+
+        <div class="ds-card">
+          <h3>Typography · Pretendard</h3>
+          <div class="ds-type-row">
+            <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;">0원의 품격</div>
+            <div class="ds-type-name">display · 28/800</div>
+          </div>
+          <div class="ds-type-row">
+            <div style="font-size:24px;font-weight:800;letter-spacing:-0.4px;">MMCA 현대차 시리즈</div>
+            <div class="ds-type-name">h1 · 24/800</div>
+          </div>
+          <div class="ds-type-row">
+            <div style="font-size:18px;font-weight:700;">오늘의 추천</div>
+            <div class="ds-type-name">h2 · 18/700</div>
+          </div>
+          <div class="ds-type-row">
+            <div style="font-size:14px;color:#B5B5B5;line-height:1.6;">지금 무료로 즐길 수 있는 문화생활을 추천하세요.</div>
+            <div class="ds-type-name">body · 14/400</div>
+          </div>
+          <div class="ds-type-row">
+            <div style="font-size:11px;font-weight:800;color:#0A0A0A;background:#D4FF00;padding:4px 8px;border-radius:4px;display:inline-block;">무료</div>
+            <div class="ds-type-name">tag · 11/800</div>
+          </div>
+          <div class="ds-type-row">
+            <div style="font-family:'JetBrains Mono';font-size:11px;letter-spacing:0.18em;color:#D4FF00;text-transform:uppercase;">Free Today</div>
+            <div class="ds-type-name">eyebrow · 11/500</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 09 — TECH                                  -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">09 — Tech Stack</div>
+      <h2 class="chapter-h2">
+        가볍고 <span class="em">빠르게</span>.
+      </h2>
+      <p class="chapter-lead">
+        한 명의 풀스택 개발자가 4주 안에 MVP를 출시할 수 있는 가장 짧은 경로.
+      </p>
+
+      <div class="tech-grid">
+        <div class="tech-card">
+          <div class="layer">FRONTEND</div>
+          <div class="name">React Native + Expo</div>
+          <div class="desc">SDK 51+, TypeScript strict. iOS/Android 동시 배포.</div>
+        </div>
+        <div class="tech-card">
+          <div class="layer">NAVIGATION</div>
+          <div class="name">React Navigation</div>
+          <div class="desc">Bottom Tabs + Native Stack. 5탭 + 중앙 FAB 커스텀.</div>
+        </div>
+        <div class="tech-card">
+          <div class="layer">STATE</div>
+          <div class="name">Zustand + TanStack Query</div>
+          <div class="desc">로컬은 Zustand, 서버는 React Query 5분 staleTime.</div>
+        </div>
+        <div class="tech-card">
+          <div class="layer">STYLING</div>
+          <div class="name">StyleSheet + Theme Tokens</div>
+          <div class="desc">디자인 토큰 기반 (colors, typography, space, radius).</div>
+        </div>
+        <div class="tech-card">
+          <div class="layer">MAP</div>
+          <div class="name">react-native-maps</div>
+          <div class="desc">Google Maps Provider. 다크 스타일 customMapStyle.</div>
+        </div>
+        <div class="tech-card">
+          <div class="layer">BACKEND (V1)</div>
+          <div class="name">Supabase or Firebase</div>
+          <div class="desc">Auth, Postgres/Firestore, Push Notifications.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 10 — ROADMAP                               -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">10 — Roadmap</div>
+      <h2 class="chapter-h2">
+        세 단계로 <span class="em">완성</span>한다.
+      </h2>
+      <p class="chapter-lead">
+        MVP에서 시작해 콘텐츠 큐레이션 플랫폼으로 확장. 각 단계마다 핵심 가치를 검증하며 다음으로 나아간다.
+      </p>
+
+      <div class="roadmap">
+        <div class="phase now">
+          <div class="ph-num">PHASE 01</div>
+          <div class="ph-title">MVP 출시</div>
+          <div class="ph-period">2026.05 – 2026.06 · 4주</div>
+          <ul>
+            <li>12개 핵심 화면 구현</li>
+            <li>서울권 행사 1,000+ 시드 데이터</li>
+            <li>위치 기반 탐색 + 저장 + 알림</li>
+            <li>iOS/Android TestFlight·내부 테스트</li>
+            <li>베타 사용자 100명 모집</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <div class="ph-num">PHASE 02</div>
+          <div class="ph-title">큐레이션 강화</div>
+          <div class="ph-period">2026.07 – 2026.09 · 12주</div>
+          <ul>
+            <li>큐레이터 콘텐츠 (이야기/스토리)</li>
+            <li>SNS 공유 카드 자동 생성</li>
+            <li>예약 외부 연동 (인터파크, 예스24)</li>
+            <li>친구 팔로우 + 추천 피드</li>
+            <li>전국 5대 도시 확장</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <div class="ph-num">PHASE 03</div>
+          <div class="ph-title">플랫폼화</div>
+          <div class="ph-period">2026.10 – 2027.Q1</div>
+          <ul>
+            <li>주최자 등록 포털 (자체 행사 등록)</li>
+            <li>유료 행사 직접 결제</li>
+            <li>광고 사업화 (스폰서드 큐레이션)</li>
+            <li>일본·대만 진출 검토</li>
+            <li>웹앱 동시 출시</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 11 — METRICS                               -->
+  <!-- ============================================ -->
+  <section class="chapter">
+    <div class="wrap">
+      <div class="chapter-num">11 — Success Metrics</div>
+      <h2 class="chapter-h2">
+        무엇을 <span class="em">측정</span>할 것인가.
+      </h2>
+      <p class="chapter-lead">
+        성공을 정의하는 4가지 KPI. 각 지표는 분기마다 리뷰하며, MVP 종료 시점의 목표값을 설정한다.
+      </p>
+
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="m-cat">ACQUISITION</div>
+          <div class="m-name">월간 신규 가입자</div>
+          <div class="m-target">5,000+</div>
+          <div class="m-desc">SNS 유입 기준 MVP 종료 시점 목표</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-cat">ACTIVATION</div>
+          <div class="m-name">D-1 리텐션</div>
+          <div class="m-target">40%</div>
+          <div class="m-desc">신규 가입 후 다음 날 재방문 비율</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-cat">ENGAGEMENT</div>
+          <div class="m-name">평균 저장 / 사용자</div>
+          <div class="m-target">3.5</div>
+          <div class="m-desc">온보딩 후 30일 동안의 누적 저장 수</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-cat">CONVERSION</div>
+          <div class="m-name">예약 클릭률</div>
+          <div class="m-target">12%</div>
+          <div class="m-desc">상세 화면 진입 → 예약 버튼 클릭 비율</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- COLOPHON                                   -->
+  <!-- ============================================ -->
+  <footer class="colophon">
+    <div class="wrap">
+      <div class="big">
+        좋은 문화는<br/>
+        <span class="em">누구에게나</span>.
+      </div>
+      <div class="meta">
+        Poomgyeok Studio · 2026 · v1.0 · Service Proposal
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
