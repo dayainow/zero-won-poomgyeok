@@ -9,13 +9,28 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_URL": "https://zero-won-poomgyeok.vercel.app",
+        "EXPO_PUBLIC_EVENTS_API_URL": "https://zero-won-poomgyeok.vercel.app/api/events",
+        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://zero-won-poomgyeok.vercel.app/privacy-policy.html"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

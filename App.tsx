@@ -121,6 +121,16 @@ const ONBOARDING_KEY = 'zero-won-poomgyeok:onboarded';
 const SAVED_KEY = 'zero-won-poomgyeok:saved-events';
 const RECENT_SEARCH_KEY = 'zero-won-poomgyeok:recent-searches';
 const REVIEWS_KEY = 'zero-won-poomgyeok:user-reviews';
+const PRIVACY_POLICY_URL =
+  process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ??
+  'https://zero-won-poomgyeok.vercel.app/privacy-policy.html';
+const SUPPORT_EMAIL = 'privacy@olalab.kr';
+
+function openExternalUrl(url: string, failureTitle = '링크를 열 수 없습니다') {
+  Linking.openURL(url).catch(() => {
+    Alert.alert(failureTitle, url);
+  });
+}
 
 const SEOUL_CITY_HALL: UserCoordinate = {
   latitude: 37.5662952,
@@ -3389,7 +3399,7 @@ function MyScreen({
         <MenuRow label="최근 본 콘텐츠" onPress={() => Alert.alert('준비 중', '최근 본 콘텐츠는 다음 단계에서 연결합니다.')} />
         <MenuRow label="알림" onPress={onNotificationsPress} />
         <MenuRow label="이용 안내" onPress={() => Alert.alert('이용 안내', '무료 문화생활을 더 가까이 발견하는 앱입니다.')} />
-        <MenuRow label="문의하기" onPress={() => Alert.alert('문의하기', 'contact@zero-won.local')} />
+        <MenuRow label="문의하기" onPress={() => openExternalUrl(`mailto:${SUPPORT_EMAIL}`)} />
       </View>
     </ScrollView>
   );
@@ -3605,7 +3615,7 @@ function SettingsScreen({
           </SettingsSection>
           <SettingsSection title="정보">
             <MenuRow label="앱 정보" value="버전 1.0.0" onPress={() => undefined} />
-            <MenuRow label="개인정보 처리" onPress={() => Alert.alert('개인정보 처리', '계정 삭제와 개인정보 고지는 다음 단계에서 확정합니다.')} />
+            <MenuRow label="개인정보 처리" onPress={() => openExternalUrl(PRIVACY_POLICY_URL)} />
           </SettingsSection>
         </ScrollView>
       </OverlaySafeArea>
