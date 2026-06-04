@@ -9,7 +9,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke:prod": "node scripts/smoke-prod-e2e.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
