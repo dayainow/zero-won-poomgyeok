@@ -1,106 +1,137 @@
-# Product Brief
+# Product Brief (1만명 최소 출시 재정의)
 
-## Goal
+## 목표
 
-`docs/product`의 기획서, 화면설계서, Agent Build Spec을 기준으로 `0원의품격` MVP를 현재 Expo/React Native 앱에 구현한다. MVP는 무료/저렴한 문화 콘텐츠를 다크 테마와 네온 라임 액센트로 탐색, 검색, 저장, 일정/알림 확인까지 경험하게 하는 것이다.
+현재 앱의 가장 큰 출시 차단 요소인 "후기 데이터 로컬 저장(AsyncStorage) 한계"를 제거하고, 1만명 규모에서 최소한의 신뢰성과 운영 가능성을 확보한다.  
+이번 턴은 빅뱅 전환이 아니라, 이미 존재하는 Supabase Auth + Vercel API 기반 위에 **후기 서버 저장/조회 + 권한 + 기본 운영 안전장치**를 얹는 것을 목표로 한다.
 
-## Scope
+## 현재 상태 진단 (핵심 갭)
 
-- 다크 테마 UI와 디자인 토큰을 앱에 반영한다.
-- 12개 MVP 화면 흐름을 구현한다: 온보딩, 피드, 상세, 지도, 검색, 필터, 저장함, 나의 일정, 마이, 설정, 알림, 빈 상태.
-- 현재 의존성 범위에서 단일 앱 상태 기반 네비게이션을 사용한다.
-- 서울 열린데이터광장 문화행사 API를 서버리스 endpoint로 연결하고, 실패 시 mock 데이터로 fallback한다.
-- mock 이벤트 데이터와 API 추상 레이어를 유지해 로컬/장애 상황에서도 앱을 확인할 수 있게 한다.
-- AsyncStorage로 온보딩 완료, 저장 콘텐츠, 최근 검색을 유지한다.
-- expo-location으로 위치 권한을 요청하고 거리순 탐색을 지원한다.
+- 인증 기초(Supabase)와 사용자 데이터 API(`/api/me*`)는 이미 존재한다.
+- 저장한 행사/환경설정/최근검색은 서버 동기화가 가능하다.
+- 후기는 `App.tsx`에서 `REVIEWS_KEY = zero-won-poomgyeok:user-reviews`로만 로컬 저장되어 디바이스 종속이다.
+- 결과적으로 다중 디바이스, 데이터 복구, 운영 대응(신고/숨김/모니터링), 악성 사용자 제어가 불가능하다.
 
-## Non-goals
+## 출시 범위 재정의
 
-- React Navigation, Zustand, TanStack Query, lucide, react-native-maps, expo-image 신규 설치는 이번 MVP 구현에서 제외한다.
-- 실제 예약/결제/푸시 발송은 외부 링크와 mock 알림으로 대체한다.
+### Must (이번 턴에서 구현 가능한 핵심 범위)
 
-## User Flow
+1. **후기 서버 저장/조회 도입 (최소 CRUD)**
+   - 인증 사용자만 후기 작성 가능.
+   - 후기 작성 API: `POST /api/reviews`
+   - 행사별 후기 조회 API: `GET /api/events/:eventId/reviews` 또는 동등 라우트
+   - 내가 작성한 후기 조회 API: `GET /api/me/reviews`
+   - 앱에서 후기 작성 성공 시 서버 반영 결과를 기준으로 UI 갱신(로컬 단독 저장 제거 또는 캐시 보조로 축소).
 
-1. 최초 진입 시 온보딩 3단계를 본다.
-2. 피드에서 카테고리, 오늘의 추천, 통계, 가까운 무료 공간을 확인한다.
-3. 카드 탭으로 상세에 들어가 저장, 예약 링크, 길찾기를 실행한다.
-4. 지도 탭에서 카테고리별 핀과 하단 카드를 통해 주변 콘텐츠를 탐색한다.
-5. 검색 모달에서 최근 검색/추천 검색어/검색 결과를 확인한다.
-6. 필터에서 지역, 카테고리, 가격, 날짜 조건을 적용한다.
-7. 저장함에서 저장한 콘텐츠를 필터링하고 빈 상태를 확인한다.
-8. 마이에서 일정, 알림, 설정 화면으로 이동한다.
+2. **인증/권한 최소선 고정**
+   - 작성/수정/삭제는 본인 토큰 필수.
+   - 공개 조회는 비로그인 허용(행사 상세 신뢰도 강화를 위해).
+   - 서버에서 `user_id`를 토큰에서만 결정하고 클라이언트 입력 신뢰 금지.
 
-## UI States
+3. **스팸/악성 1차 방어**
+   - 본문 길이 제한(예: 10~500자), 평점 범위 제한(1~5), 공백 후기 차단.
+   - 사용자당 작성 빈도 제한(예: 분당 N회) 또는 동일 행사 중복 작성 제한(정책 택1, Must에서 1개는 반드시 적용).
+   - 신고/숨김의 완전 기능 대신, 운영자 수동 대응 가능한 `status` 필드(`visible`, `hidden`)를 데이터 모델에 포함.
 
-- Loading: 온보딩/앱 시작, 위치 요청, 서울 문화행사 API refresh.
-- Empty: 저장함, 검색 결과, 일정, 알림.
-- Error/Warning: 위치 권한 거부 또는 위치 조회 실패 시 서울시청 기준 fallback 안내.
-- Success: 피드 데이터 렌더링, 저장 토글, 필터 적용, 최근 검색 저장.
+4. **운영 관측성 최소선**
+   - 후기 API 에러를 구조화해 반환(`error`, `message`, `code`).
+   - 서버 로그에서 후기 생성 실패/권한 실패/검증 실패를 구분 가능하게 이벤트명 고정.
+   - 최소 운영 지표 3개를 수집 가능 상태로 정의: 후기 생성 성공률, 4xx 비율, 5xx 비율.
 
-## Data Contract
+### Next (후속 범위)
 
-### Event
+- AI/자동 욕설 필터, 정교한 스팸 탐지, 사용자 차단/제재 워크플로우.
+- 신고 접수 UI/관리자 콘솔/처리 이력.
+- 후기 좋아요, 정렬 고도화(최신/평점/신뢰도), 이미지 첨부.
+- 캐시/인덱스/페이지네이션 고도화, 랭킹/통계 재계산 파이프라인.
+- 외부 모니터링 연동(Sentry/Datadog)과 알림 룰 자동화.
 
-- `id`: string
-- `title`: string
-- `subtitle`: string
-- `category`: `'전체' | '전시' | '공연' | '클래스' | '행사' | '공간'`
-- `priceTier`: `'free' | 'cheap' | 'mid'`
-- `priceLabel`: string
-- `reservationRequired`: boolean
-- `thumbnail`: string
-- `images`: string[]
-- `description`: string
-- `hashtags`: string[]
-- `location`: `{ address: string; lat: number; lng: number }`
-- `schedule`: `{ startDate: string; endDate: string; operatingHours: string; closedDays: string }`
-- `rating`: number
-- `reviewCount`: number
-- `favoriteCount`: number
-- `reservationUrl?`: string
+## 사용자 흐름 (Must 기준)
 
-### API
+1. 비로그인 사용자는 행사 상세에서 후기를 읽을 수 있다.
+2. 비로그인 사용자가 후기 작성 버튼을 누르면 로그인 오버레이로 이동한다.
+3. 로그인 사용자가 평점+코멘트를 제출하면 서버 검증 후 저장된다.
+4. 저장 성공 시 상세 후기 목록과 내 후기 목록이 즉시 갱신된다.
+5. 제한/검증 실패 시 사용자에게 원인(길이 초과, 중복, 빈도 제한)을 명확히 안내한다.
 
-- `GET /api/events`: 서울 열린데이터광장 `culturalEventInfo`를 `CultureEvent[]`로 정규화한다.
-- `GET /api/debug/culture-events`: 배포 환경의 API 키/외부 API 연결 상태를 점검한다.
-- `getFeed(category?, filters?)`
-- `getFeatured()`
-- `getNearby(lat, lng, category?, filters?)`
-- `getStats(filters?)`
-- `getEvent(id)`
-- `search(query, filters?)`
-- `getTrending()`
-- `getNotifications()`
-- `getMe()`
+## 데이터 계약 (Must)
 
-## Acceptance Criteria
+### Review Entity (초안)
 
-- 앱 기본 화면이 다크 테마이며 브랜드명 `0원의 품격`의 `0`이 라임 액센트로 보인다.
-- 온보딩 완료 후 피드 탭으로 진입하고 완료 상태가 AsyncStorage에 저장된다.
-- 피드에는 카테고리 row, 오늘의 추천, 3개 통계 카드, 가까운 무료 공간 카드가 보인다.
-- 피드/지도/저장함/마이 4개 탭과 중앙 FAB가 동작한다.
-- 카드 탭 시 상세 화면으로 이동하고 저장/예약/길찾기 액션이 제공된다.
-- 저장 토글은 상세, 피드 카드, 지도 하단 카드, 저장함에 일관되게 반영된다.
-- 검색 모달은 최근 검색, 추천 검색어, 2글자 이상 검색 결과, 결과 없음 상태를 제공한다.
-- 필터 화면에서 지역/카테고리/가격/날짜를 선택하고 적용하면 피드/지도 결과가 줄어든다.
-- 지도 화면은 실제 지도 패키지 없이 다크 맵 패널과 카테고리 핀/하단 카드로 MVP 탐색 흐름을 제공한다.
-- 마이 화면에서 일정, 알림, 설정 화면으로 진입할 수 있다.
-- `npm run typecheck`가 통과해야 한다.
-- Vercel 배포 환경에서 `SEOUL_OPEN_API_KEY`가 설정되면 `/api/events` 응답의 `source`가 `seoul-open-api`가 된다.
-- 서울 API 장애나 키 누락 시 앱은 mock 데이터로 계속 렌더링되고 피드 상단에 fallback 안내가 보인다.
+- `id`: string (uuid)
+- `eventId`: string
+- `userId`: string (서버 결정)
+- `rating`: number (1..5)
+- `comment`: string (trimmed)
+- `status`: `'visible' | 'hidden'`
+- `createdAt`: string (ISO)
+- `updatedAt`: string (ISO)
 
-## Implementation Tasks
+### Review API (초안)
 
-1. `src/types.ts`에 문화 이벤트, 알림, 사용자, 필터 타입을 추가한다.
-2. `src/data/events.ts`에 MVP mock 이벤트/알림/사용자 데이터를 추가한다.
-3. `src/services/cultureApi.ts`에 API 로딩, fallback, 거리/필터/search 로직을 추가한다.
-4. `api/events.ts`와 `api/_lib/publicCultureEvents.ts`에 서울 문화행사 API 연동 endpoint를 추가한다.
-5. `App.tsx`를 다크 테마 MVP 앱으로 교체한다.
-6. `_workspace/02_backend_contract.md`, `_workspace/03_frontend_notes.md`, `_workspace/04_qa_report.md`를 작성한다.
+- `POST /api/reviews`
+  - auth required
+  - body: `{ eventId: string; rating: number; comment: string }`
+  - 200: `{ review: Review }`
+- `GET /api/events/{eventId}/reviews`
+  - public
+  - query(선택): `cursor`, `limit`
+  - 200: `{ reviews: Review[]; nextCursor?: string }`
+- `GET /api/me/reviews`
+  - auth required
+  - 200: `{ reviews: Review[] }`
 
-## Risks / Questions
+### 에러 규약
 
-- 실제 `react-native-maps`와 `expo-image`는 설치되어 있지 않아 시안의 지도/이미지 캐싱은 MVP 대체 UI로 구현한다.
-- Pretendard 폰트 파일이 없어 시스템 폰트 weight로 위계를 구성한다.
-- 원격 이미지 URL은 네트워크 상태에 따라 표시 실패할 수 있어 카드 배경색과 텍스트가 정보 전달을 보완한다.
-- 공공 API 필드 품질에 따라 좌표 없는 행사는 제외된다.
+- 공통 형태: `{ error: string; message: string; code?: string }`
+- 대표 코드:
+  - `UNAUTHORIZED`
+  - `INVALID_REVIEW_PAYLOAD`
+  - `REVIEW_RATE_LIMITED`
+  - `REVIEW_DUPLICATED`
+  - `REVIEW_ENDPOINT_FAILED`
+
+## 수용 기준 (Must)
+
+- 후기 작성 데이터가 앱 재시작/기기 변경 후에도 동일 계정에서 유지된다.
+- 비로그인 작성 시도는 401 또는 로그인 유도 동작으로 차단된다.
+- 잘못된 페이로드(평점 범위, 본문 길이, 빈 값)는 400으로 일관 처리된다.
+- 동일 사용자-행사 중복 정책 또는 작성 빈도 제한 정책이 실제로 동작한다.
+- 행사 상세에서 서버 후기 조회 결과가 렌더링된다(빈 상태/에러 상태 포함).
+- `npm run typecheck` 통과.
+
+## 구현 분해 (오케스트레이터 전달용)
+
+### Backend 체크리스트
+
+- [ ] Supabase `reviews` 테이블(또는 동등 모델) 추가: `event_id`, `user_id`, `rating`, `comment`, `status`, timestamps
+- [ ] RLS/권한: 본인만 쓰기/수정, 공개 조회는 `visible`만
+- [ ] `POST /api/reviews` 구현 + 검증 + 에러 코드 표준화
+- [ ] `GET /api/events/:eventId/reviews` 구현 (기본 최신순, limit)
+- [ ] `GET /api/me/reviews` 구현
+- [ ] 스팸 완화 1개 이상 구현(중복 제한 또는 빈도 제한)
+- [ ] 후기 API 로그 이벤트명 표준화 (success/validation/auth/failure)
+
+### Frontend 체크리스트
+
+- [ ] `App.tsx` 후기 작성 경로를 서버 API 기반으로 전환
+- [ ] 로컬 `userReviews` 단독 소스 제거(필요 시 임시 캐시는 서버 결과 보조용)
+- [ ] 행사 상세에 서버 후기 목록 렌더링(로딩/빈/에러 상태)
+- [ ] 비로그인 작성 시 로그인 유도 흐름 유지
+- [ ] 검증 실패/제한 실패 메시지 UX 정리
+- [ ] 성공 모달 이후 서버 재조회 또는 낙관적 갱신 동작 보장
+
+### QA 체크리스트
+
+- [ ] 로그인/비로그인 권한 케이스 점검 (작성/조회)
+- [ ] 평점/본문 검증 실패 케이스 점검
+- [ ] 중복 또는 빈도 제한 정책 점검
+- [ ] 앱 재시작 및 재로그인 후 후기 데이터 유지 점검
+- [ ] 서버 에러 시 UI 폴백/에러 문구 점검
+- [ ] 타입체크 및 기본 회귀(저장/검색/필터/지도) 점검
+
+## 위험 및 결정 필요 항목
+
+- 중복 제한 vs 빈도 제한 중 어떤 정책을 Must 우선으로 채택할지 결정 필요(추천: 동일 사용자-행사 1건 제한).
+- 기존 이벤트 `reviewCount/rating`과 실제 서버 후기 집계 동기화 방식은 Next로 분리 가능.
+- 후기 운영자 도구가 아직 없으므로 `status` 기반 수동 SQL 대응 절차를 운영 문서에 함께 남겨야 한다.

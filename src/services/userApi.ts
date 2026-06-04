@@ -35,6 +35,17 @@ export type ViewerSavedEvent = {
   savedAt: string;
 };
 
+export type Review = {
+  id: string;
+  userId: string;
+  eventId: string;
+  eventTitle: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ViewerData = {
   profile: ViewerProfile;
   preferences: ViewerPreferences;
@@ -126,6 +137,37 @@ export async function loadViewerSavedEvents() {
   return requestWithAuth<SavedEventsPayload>('/api/me/saved-events');
 }
 
+export async function createViewerReview(input: {
+  eventId: string;
+  eventTitle: string;
+  rating: number;
+  comment: string;
+}) {
+  return requestWithAuth<{ review: Review }>('/api/me/reviews', {
+    body: JSON.stringify(input),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+}
+
+export async function loadViewerReviews(limit?: number) {
+  const query = typeof limit === 'number' ? `?limit=${encodeURIComponent(String(limit))}` : '';
+  return requestWithAuth<{ reviews: Review[] }>(`/api/me/reviews${query}`);
+}
+
+export async function loadEventReviews(eventId: string, limit?: number) {
+  const searchParams = new URLSearchParams();
+  if (typeof limit === 'number') {
+    searchParams.set('limit', String(limit));
+  }
+
+  const query = searchParams.toString();
+  const path = `/api/events/${encodeURIComponent(eventId)}/reviews${query ? `?${query}` : ''}`;
+  return requestWithoutAuth<{ reviews: Review[] }>(path);
+}
+
 async function requestWithAuth<T>(path: string, init: RequestInit = {}) {
   const token = await getAuthAccessToken();
 
@@ -138,6 +180,27 @@ async function requestWithAuth<T>(path: string, init: RequestInit = {}) {
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${token}`,
+      ...init.headers,
+    },
+  });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      payload && typeof payload.message === 'string'
+        ? payload.message
+        : `API request failed with ${response.status}.`;
+    throw new Error(message);
+  }
+
+  return payload as T;
+}
+
+async function requestWithoutAuth<T>(path: string, init: RequestInit = {}) {
+  const response = await fetch(getApiUrl(path), {
+    ...init,
+    headers: {
+      Accept: 'application/json',
       ...init.headers,
     },
   });

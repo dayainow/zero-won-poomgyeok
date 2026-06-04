@@ -1,12 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Linking,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   SafeAreaView,
@@ -17,6 +19,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  SafeAreaView as SafeAreaOverlay,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import {
   CATEGORIES,
@@ -25,6 +31,7 @@ import {
   MOCK_USER,
   TRENDING_SEARCHES,
 } from './src/data/events';
+import { NativeMapView, NativeMarker } from './src/components/NativeMap';
 import {
   AuthSessionState,
   getCurrentAuthSession,
@@ -35,6 +42,11 @@ import {
   signUpWithEmail,
 } from './src/services/authClient';
 import {
+  getKakaoRedirectUri,
+  isKakaoAuthConfigured,
+  signInWithKakao,
+} from './src/services/kakaoAuth';
+import {
   filterEvents,
   formatEventDistance,
   getInitialCultureEventsData,
@@ -42,6 +54,11 @@ import {
   loadCultureEventsData,
 } from './src/services/cultureApi';
 import type { CultureEventsDataState } from './src/services/cultureApi';
+import {
+  geocodeKakaoQuery,
+  searchKakaoPlaces as searchKakaoPlacesApi,
+} from './src/services/mapApi';
+import type { GeocodeCoordinate, KakaoPlace } from './src/services/mapApi';
 import {
   deleteViewerSavedEvent,
   loadViewerData,
@@ -51,6 +68,13 @@ import {
   updateViewerProfile,
 } from './src/services/userApi';
 import type { ViewerData } from './src/services/userApi';
+import {
+  createReview,
+  loadEventReviews,
+  loadMyReviews,
+  reportReview,
+  type ReviewItem,
+} from './src/services/reviewApi';
 import type {
   Category,
   CultureEvent,
@@ -58,6 +82,23 @@ import type {
   PriceTier,
   UserCoordinate,
 } from './src/types';
+
+type MapRegion = {
+  latitude: number;
+  latitudeDelta: number;
+  longitude: number;
+  longitudeDelta: number;
+};
+
+type NaverMapInstance = {
+  destroy?: () => void;
+  setCenter: (center: unknown) => void;
+  setZoom: (zoom: number) => void;
+};
+
+type NaverMarkerInstance = {
+  setMap: (map: unknown | null) => void;
+};
 
 type TabKey = 'feed' | 'map' | 'saved' | 'my';
 type OverlayKey =
@@ -67,12 +108,19 @@ type OverlayKey =
   | 'notifications'
   | 'itinerary'
   | 'profile'
-  | 'settings';
+  | 'settings'
+  | 'review';
 type AuthMode = 'signIn' | 'signUp';
+
+type ReviewSuccessPayload = {
+  eventTitle: string;
+  rating: number;
+};
 
 const ONBOARDING_KEY = 'zero-won-poomgyeok:onboarded';
 const SAVED_KEY = 'zero-won-poomgyeok:saved-events';
 const RECENT_SEARCH_KEY = 'zero-won-poomgyeok:recent-searches';
+const REVIEWS_KEY = 'zero-won-poomgyeok:user-reviews';
 
 const SEOUL_CITY_HALL: UserCoordinate = {
   latitude: 37.5662952,
@@ -91,12 +139,122 @@ const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '�
 const PRICES: CultureFilters['price'][] = ['전체', '무료', '1만원 이하', '1-3만원'];
 const DATES: CultureFilters['date'][] = ['전체', '오늘', '이번 주', '이번 달'];
 
+const TAB_BAR_BODY_HEIGHT = 72;
+const TAB_BAR_TOP_PADDING = 8;
+const TAB_BAR_MIN_BOTTOM_PADDING = 10;
+const TAB_BAR_SCROLL_GAP = 30;
+
+function useTabBarLayout() {
+  const { bottom } = useSafeAreaInsets();
+  const tabBarBottomPadding = Math.max(bottom, TAB_BAR_MIN_BOTTOM_PADDING);
+  const tabBarHeight = TAB_BAR_BODY_HEIGHT + TAB_BAR_TOP_PADDING + tabBarBottomPadding;
+  const scrollPaddingBottom = tabBarHeight + TAB_BAR_SCROLL_GAP;
+
+  return {
+    tabBarHeight,
+    tabBarStyle: {
+      minHeight: TAB_BAR_BODY_HEIGHT + TAB_BAR_TOP_PADDING,
+      paddingBottom: tabBarBottomPadding,
+      paddingTop: TAB_BAR_TOP_PADDING,
+    },
+    scrollPaddingBottom,
+  };
+}
+
+const DARK_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#161A20' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#7C828C' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#161A20' }] },
+  {
+    featureType: 'administrative',
+    elementType: 'geometry',
+    stylers: [{ color: '#2E353F' }],
+  },
+  {
+    featureType: 'poi',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#232933' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#111419' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#8D949E' }],
+  },
+  {
+    featureType: 'transit',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#0B1017' }],
+  },
+];
+
+const WEB_MAP_TILE_SIZE = 256;
+const WEB_MAP_MIN_ZOOM = 11;
+const WEB_MAP_MAX_ZOOM = 15;
+const KAKAO_MAP_APP_KEY = process.env.EXPO_PUBLIC_KAKAO_MAP_APP_KEY?.trim();
+const KAKAO_MAP_SCRIPT_ID = 'zero-won-kakao-map-sdk';
+const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID?.trim();
+const NAVER_MAP_SCRIPT_ID = 'zero-won-naver-map-sdk';
+const NAVER_MAP_CALLBACK = '__zeroWonNaverMapsLoaded';
+
+declare global {
+  interface Window {
+    __zeroWonKakaoMapPromise?: Promise<void>;
+    __zeroWonNaverMapPromise?: Promise<void>;
+    __zeroWonNaverMapsLoaded?: () => void;
+    kakao?: {
+      maps?: {
+        LatLng: new (latitude: number, longitude: number) => unknown;
+        Map: new (element: HTMLElement, options: Record<string, unknown>) => {
+          setCenter: (position: unknown) => void;
+          setLevel: (level: number) => void;
+        };
+        Marker: new (options: Record<string, unknown>) => {
+          setMap: (map: unknown | null) => void;
+          setZIndex: (zIndex: number) => void;
+        };
+        event: {
+          addListener: (target: unknown, eventName: string, listener: () => void) => unknown;
+        };
+        load: (callback: () => void) => void;
+      };
+    };
+    naver?: {
+      maps?: {
+        Event: {
+          addListener: (target: unknown, eventName: string, listener: () => void) => unknown;
+        };
+        LatLng: new (latitude: number, longitude: number) => unknown;
+        Map: new (element: HTMLElement, options: Record<string, unknown>) => NaverMapInstance;
+        Marker: new (options: Record<string, unknown>) => NaverMarkerInstance;
+        Point: new (x: number, y: number) => unknown;
+        Size: new (width: number, height: number) => unknown;
+      };
+    };
+  }
+}
+
 export default function App() {
   const [booting, setBooting] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [activeTab, setActiveTab] = useState<TabKey>('feed');
   const [overlay, setOverlay] = useState<OverlayKey | null>(null);
+  const [reviewSuccessPayload, setReviewSuccessPayload] = useState<ReviewSuccessPayload | null>(null);
+  const [showReviewSuccessModal, setShowReviewSuccessModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CultureEvent | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category>('전체');
   const [filters, setFilters] = useState<CultureFilters>(DEFAULT_FILTERS);
@@ -104,6 +262,10 @@ export default function App() {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [searchPlaces, setSearchPlaces] = useState<KakaoPlace[]>([]);
+  const [searchPlacesLoading, setSearchPlacesLoading] = useState(false);
+  const [searchPlacesError, setSearchPlacesError] = useState('');
   const [authSession, setAuthSession] = useState<AuthSessionState>({
     session: null,
     user: null,
@@ -129,6 +291,12 @@ export default function App() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [eventPushEnabled, setEventPushEnabled] = useState(true);
   const [marketingEnabled, setMarketingEnabled] = useState(false);
+  const [myReviews, setMyReviews] = useState<ReviewItem[]>([]);
+  const [legacyReviewCount, setLegacyReviewCount] = useState(0);
+  const [detailReviews, setDetailReviews] = useState<ReviewItem[]>([]);
+  const [detailReviewsLoading, setDetailReviewsLoading] = useState(false);
+  const [detailReviewsError, setDetailReviewsError] = useState('');
+  const [reviewPinnedEvent, setReviewPinnedEvent] = useState<CultureEvent | null>(null);
   const authConfigured = isSupabaseAuthConfigured();
   const currentUser = authSession.user;
   const isSignedIn = Boolean(currentUser);
@@ -139,10 +307,11 @@ export default function App() {
     let mounted = true;
 
     async function restore() {
-      const [onboarded, saved, recent] = await Promise.all([
+      const [onboarded, saved, recent, reviews] = await Promise.all([
         AsyncStorage.getItem(ONBOARDING_KEY),
         AsyncStorage.getItem(SAVED_KEY),
         AsyncStorage.getItem(RECENT_SEARCH_KEY),
+        AsyncStorage.getItem(REVIEWS_KEY),
       ]);
 
       if (!mounted) {
@@ -152,6 +321,8 @@ export default function App() {
       setShowOnboarding(onboarded !== 'true');
       setSavedIds(saved ? JSON.parse(saved) : []);
       setRecentSearches(recent ? JSON.parse(recent) : ['전시', '무료공연', '이번 주말']);
+      const parsedReviews = reviews ? JSON.parse(reviews) : [];
+      setLegacyReviewCount(Array.isArray(parsedReviews) ? parsedReviews.length : 0);
       setBooting(false);
     }
 
@@ -318,6 +489,57 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 350);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const normalized = debouncedSearchQuery.trim();
+
+    if (overlay !== 'search' || normalized.length < 2) {
+      setSearchPlaces([]);
+      setSearchPlacesError('');
+      setSearchPlacesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearchPlacesLoading(true);
+    setSearchPlacesError('');
+
+    searchKakaoPlacesApi(normalized)
+      .then((places) => {
+        if (!cancelled) {
+          setSearchPlaces(places);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSearchPlaces([]);
+          setSearchPlacesError(
+            error instanceof Error
+              ? error.message
+              : '카카오 장소 검색 중 문제가 발생했습니다.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSearchPlacesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearchQuery, overlay]);
+
   const activeFilters = useMemo(
     () => ({
       ...filters,
@@ -345,6 +567,12 @@ export default function App() {
   );
 
   const visibleSavedIds = isSignedIn ? viewerData?.savedEventIds ?? savedIds : [];
+  const reviewCount = isSignedIn ? myReviews.length : legacyReviewCount;
+
+  const reviewEventOptions = useMemo(
+    () => nearbyEvents.slice(0, 5).map(({ distanceKm, ...event }) => event),
+    [nearbyEvents],
+  );
 
   const savedEvents = useMemo(
     () => cultureEvents.filter((event) => visibleSavedIds.includes(event.id)),
@@ -504,6 +732,148 @@ export default function App() {
     setSelectedEvent(null);
   }
 
+  function openFabPress() {
+    if (activeTab === 'map') {
+      if (!selectedMapEvent) {
+        Alert.alert('후기', '지도에 표시된 장소가 없어요.');
+        return;
+      }
+
+      setReviewPinnedEvent(selectedMapEvent);
+      setOverlay('review');
+      return;
+    }
+
+    setReviewPinnedEvent(null);
+    setOverlay('review');
+  }
+
+  function closeReview() {
+    setReviewPinnedEvent(null);
+    setOverlay(null);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadServerMyReviews() {
+      if (!isSignedIn) {
+        setMyReviews([]);
+        return;
+      }
+
+      try {
+        const payload = await loadMyReviews();
+
+        if (!cancelled) {
+          setMyReviews(payload.reviews);
+        }
+      } catch {
+        if (!cancelled) {
+          setMyReviews([]);
+        }
+      }
+    }
+
+    loadServerMyReviews();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, currentUser?.id]);
+
+  const fetchDetailReviews = useCallback(async (eventId: string) => {
+    setDetailReviewsLoading(true);
+    setDetailReviewsError('');
+
+    try {
+      const payload = await loadEventReviews(eventId, 3);
+      setDetailReviews(payload.reviews);
+    } catch (error) {
+      setDetailReviews([]);
+      setDetailReviewsError(
+        error instanceof Error ? error.message : '후기 목록을 불러오지 못했어요.',
+      );
+    } finally {
+      setDetailReviewsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const eventId = selectedEvent?.id;
+
+    if (!eventId) {
+      setDetailReviews([]);
+      setDetailReviewsError('');
+      setDetailReviewsLoading(false);
+      return;
+    }
+
+    fetchDetailReviews(eventId);
+  }, [fetchDetailReviews, selectedEvent?.id]);
+
+  async function submitReview(input: {
+    comment: string;
+    eventId: string;
+    eventTitle: string;
+    rating: number;
+  }) {
+    if (!isSignedIn) {
+      openAuthGate('signIn');
+      throw new Error('로그인 후 후기를 남길 수 있어요.');
+    }
+
+    try {
+      const payload = await createReview({
+        comment: input.comment,
+        eventId: input.eventId,
+        eventTitle: input.eventTitle,
+        rating: input.rating,
+      });
+      const savedReview = payload.review;
+
+      setMyReviews((current) => [savedReview, ...current]);
+
+      if (selectedEvent?.id === input.eventId) {
+        setDetailReviews((current) => [savedReview, ...current].slice(0, 3));
+      }
+    } catch (error) {
+      throw new Error(getReviewSubmitErrorMessage(error));
+    }
+
+    setReviewPinnedEvent(null);
+    setOverlay(null);
+    setReviewSuccessPayload({
+      eventTitle: input.eventTitle,
+      rating: input.rating,
+    });
+    setShowReviewSuccessModal(true);
+  }
+
+  async function handleKakaoSignIn() {
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      const data = await signInWithKakao();
+      const session = data.session ?? null;
+
+      setAuthSession({
+        session,
+        user: session?.user ?? data.user ?? null,
+      });
+      setOverlay(null);
+    } catch (error) {
+      const message = formatAuthError(error);
+
+      if (!/취소/.test(message)) {
+        setAuthError(message);
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
   async function handleAuthSubmit(email: string, password: string) {
     setAuthLoading(true);
     setAuthError('');
@@ -532,11 +902,7 @@ export default function App() {
       );
       setAuthMode('signIn');
     } catch (error) {
-      setAuthError(
-        error instanceof Error
-          ? error.message
-          : '인증 처리 중 문제가 발생했습니다.',
-      );
+      setAuthError(formatAuthError(error));
     } finally {
       setAuthLoading(false);
     }
@@ -569,7 +935,10 @@ export default function App() {
     setOverlay('filter');
   }
 
-  async function submitSearch(nextQuery = searchQuery) {
+  async function submitSearch(
+    nextQuery = searchQuery,
+    geocodeHint?: GeocodeCoordinate | null,
+  ) {
     const normalized = nextQuery.trim();
 
     if (normalized.length < 2) {
@@ -581,6 +950,26 @@ export default function App() {
       normalized,
       ...current.filter((item) => item !== normalized),
     ].slice(0, 5));
+
+    try {
+      const coordinate = geocodeHint ?? (await geocodeKakaoQuery(normalized));
+
+      if (coordinate) {
+        setLocation({
+          latitude: coordinate.latitude,
+          longitude: coordinate.longitude,
+        });
+        const label = coordinate.roadAddressName || coordinate.addressName;
+        setLocationLabel(`${label} 기준`);
+        setLocationMessage('카카오 로컬 지오코딩 기준으로 주변 문화행사를 다시 정렬했어요.');
+      }
+    } catch (error) {
+      setLocationMessage(
+        error instanceof Error
+          ? `지오코딩 실패: ${error.message}`
+          : '지오코딩에 실패해 기존 위치 기준으로 표시합니다.',
+      );
+    }
 
     if (isSignedIn) {
       try {
@@ -747,7 +1136,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaOverlay edges={['left', 'right', 'top']} style={styles.screen}>
       <StatusBar style="light" />
       <View style={styles.appShell}>
         {selectedEvent ? (
@@ -756,8 +1145,35 @@ export default function App() {
             isSaved={visibleSavedIds.includes(selectedEvent.id)}
             onBack={() => setSelectedEvent(null)}
             onDirections={openDirections}
+            onReportReview={async (reviewId) => {
+              if (!isSignedIn) {
+                openAuthGate('signIn');
+                return;
+              }
+              try {
+                const payload = await reportReview({
+                  reason: '부적절한 후기',
+                  reviewId,
+                });
+                if (payload.hideTriggered) {
+                  Alert.alert('신고 접수 완료', '커뮤니티 신고 누적으로 해당 후기가 숨김 처리됐어요.');
+                  fetchDetailReviews(selectedEvent.id);
+                  return;
+                }
+                Alert.alert('신고 접수 완료', '검토를 위해 신고를 접수했어요.');
+              } catch (error) {
+                Alert.alert(
+                  '신고 실패',
+                  error instanceof Error ? error.message : '신고를 처리하지 못했어요.',
+                );
+              }
+            }}
             onReservation={openReservation}
+            onRetryReviews={() => fetchDetailReviews(selectedEvent.id)}
             onToggleSaved={toggleSaved}
+            recentReviews={detailReviews}
+            reviewsError={detailReviewsError}
+            reviewsLoading={detailReviewsLoading}
           />
         ) : (
           <>
@@ -819,6 +1235,7 @@ export default function App() {
                 onProfilePress={() => setOverlay('profile')}
                 onSettingsPress={() => setOverlay('settings')}
                 profileName={viewerProfile?.nickname ?? null}
+                reviewCount={reviewCount}
                 savedCount={savedEvents.length}
                 userEmail={viewerEmail}
                 viewerError={viewerError}
@@ -826,7 +1243,7 @@ export default function App() {
               />
             ) : null}
 
-            <BottomTabBar activeTab={activeTab} onTabPress={openTab} />
+            <BottomTabBar activeTab={activeTab} onFabPress={openFabPress} onTabPress={openTab} />
           </>
         )}
 
@@ -834,12 +1251,24 @@ export default function App() {
           <SearchScreen
             onCancel={() => setOverlay(null)}
             onEventPress={openEvent}
+            onPlacePick={(place) => {
+              setSearchQuery(place.placeName);
+              submitSearch(place.placeName, {
+                addressName: place.addressName,
+                latitude: place.latitude,
+                longitude: place.longitude,
+                roadAddressName: place.roadAddressName,
+              });
+            }}
             onRecentClear={() => setRecentSearches([])}
             onRecentPick={(query) => {
               setSearchQuery(query);
               submitSearch(query);
             }}
             onSubmit={submitSearch}
+            places={searchPlaces}
+            placesError={searchPlacesError}
+            placesLoading={searchPlacesLoading}
             query={searchQuery}
             recentSearches={recentSearches}
             results={searchResults}
@@ -857,6 +1286,8 @@ export default function App() {
               setPendingSaveEventId(null);
               setOverlay(null);
             }}
+            kakaoConfigured={isKakaoAuthConfigured()}
+            onKakaoPress={handleKakaoSignIn}
             onModeChange={(mode) => {
               setAuthMode(mode);
               setAuthError('');
@@ -949,8 +1380,28 @@ export default function App() {
             onSubmit={handleProfileSave}
           />
         ) : null}
+
+        {overlay === 'review' ? (
+          <ReviewWriteScreen
+            defaultEventId={selectedMapEventId}
+            events={reviewEventOptions}
+            onBack={closeReview}
+            onSubmit={submitReview}
+            pinnedEvent={reviewPinnedEvent}
+          />
+        ) : null}
+
+        {showReviewSuccessModal && reviewSuccessPayload ? (
+          <ReviewSuccessModal
+            payload={reviewSuccessPayload}
+            onConfirm={() => {
+              setShowReviewSuccessModal(false);
+              setReviewSuccessPayload(null);
+            }}
+          />
+        ) : null}
       </View>
-    </SafeAreaView>
+    </SafeAreaOverlay>
   );
 }
 
@@ -1070,9 +1521,11 @@ function FeedScreen({
   selectedCategory: Category;
   stats: { free: number; cheap: number; weekend: number };
 }) {
+  const { scrollPaddingBottom } = useTabBarLayout();
+
   return (
     <ScrollView
-      contentContainerStyle={styles.tabContent}
+      contentContainerStyle={[styles.tabContent, { paddingBottom: scrollPaddingBottom }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.feedHeader}>
@@ -1181,15 +1634,25 @@ function DetailScreen({
   isSaved,
   onBack,
   onDirections,
+  onReportReview,
   onReservation,
+  onRetryReviews,
   onToggleSaved,
+  recentReviews,
+  reviewsError,
+  reviewsLoading,
 }: {
   event: CultureEvent & { distanceKm?: number };
   isSaved: boolean;
   onBack: () => void;
   onDirections: (event: CultureEvent) => void;
+  onReportReview: (reviewId: string) => void;
   onReservation: (event: CultureEvent) => void;
+  onRetryReviews: () => void;
   onToggleSaved: (eventId: string) => void;
+  recentReviews: ReviewItem[];
+  reviewsError: string;
+  reviewsLoading: boolean;
 }) {
   return (
     <View style={styles.detailShell}>
@@ -1230,6 +1693,62 @@ function DetailScreen({
           </View>
 
           <Text style={styles.detailDescription}>{event.description}</Text>
+          <View style={styles.detailReviewSection}>
+            <Text style={styles.detailReviewTitle}>최근 후기</Text>
+            {reviewsLoading ? (
+              <View style={styles.detailReviewLoadingRow}>
+                <ActivityIndicator color={colors.accent} size="small" />
+                <Text style={styles.detailReviewMetaText}>후기를 불러오는 중이에요.</Text>
+              </View>
+            ) : null}
+            {!reviewsLoading && reviewsError ? (
+              <View style={styles.detailReviewMessageCard}>
+                <Text style={styles.detailReviewMetaText}>{reviewsError}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onRetryReviews}
+                  style={styles.outlineSmallButton}
+                >
+                  <Text style={styles.outlineSmallButtonText}>다시 시도</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {!reviewsLoading && !reviewsError && recentReviews.length === 0 ? (
+              <View style={styles.detailReviewMessageCard}>
+                <Text style={styles.detailReviewMetaText}>
+                  아직 등록된 후기가 없어요. 첫 후기를 남겨보세요.
+                </Text>
+              </View>
+            ) : null}
+            {!reviewsLoading && !reviewsError && recentReviews.length > 0
+              ? recentReviews.slice(0, 3).map((review) => (
+                  <View key={review.id} style={styles.detailReviewItem}>
+                    <View style={styles.detailReviewHeader}>
+                      <Text style={styles.detailReviewAuthor}>
+                        사용자 후기
+                      </Text>
+                      <View style={styles.detailReviewActions}>
+                        <Text style={styles.detailReviewRating}>★ {review.rating.toFixed(1)}</Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => onReportReview(review.id)}
+                          style={styles.outlineTinyButton}
+                        >
+                          <Text style={styles.outlineTinyButtonText}>신고</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                    {review.comment ? (
+                      <Text style={styles.detailReviewComment}>{review.comment}</Text>
+                    ) : (
+                      <Text style={styles.detailReviewMetaText}>
+                        코멘트 없이 별점만 등록된 후기예요.
+                      </Text>
+                    )}
+                  </View>
+                ))
+              : null}
+          </View>
           <View style={styles.hashRow}>
             {event.hashtags.map((tag) => (
               <Text key={tag} style={styles.hashTag}>#{tag}</Text>
@@ -1239,9 +1758,7 @@ function DetailScreen({
           <View style={styles.mapPreview}>
             <Text style={styles.mapAddress}>{event.location.address}</Text>
             <View style={styles.mapPreviewCanvas}>
-              <View style={styles.mapPreviewPin}>
-                <Text style={styles.mapPreviewPinText}>0</Text>
-              </View>
+              <DetailMapPreview event={event} />
             </View>
             <View style={styles.mapPreviewFooter}>
               <Text style={styles.mapDistance}>
@@ -1279,6 +1796,91 @@ function DetailScreen({
   );
 }
 
+function DetailMapPreview({ event }: { event: CultureEvent & { distanceKm?: number } }) {
+  const [mapSize, setMapSize] = useState({ height: 0, width: 0 });
+  const mapRegion = createEventMapRegion([event], event, {
+    latitudeDelta: 0.012,
+    longitudeDelta: 0.012,
+  });
+  const useNativeMap = shouldUseNativeMap() && hasValidEventCoordinate(event);
+  const mapCanvasSize = getMapCanvasSize(mapSize);
+  const MapViewComponent = NativeMapView;
+  const MarkerComponent = NativeMarker;
+
+  const handleLayout = useCallback((layoutEvent: LayoutChangeEvent) => {
+    const { height, width } = layoutEvent.nativeEvent.layout;
+
+    setMapSize((current) => {
+      if (current.height === height && current.width === width) {
+        return current;
+      }
+
+      return { height, width };
+    });
+  }, []);
+
+  if (!hasValidEventCoordinate(event)) {
+    return (
+      <View style={styles.mapPreviewFallback}>
+        <View style={styles.mapPreviewPin}>
+          <Text style={styles.mapPreviewPinText}>0</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View onLayout={handleLayout} style={styles.mapPreviewSurface}>
+      {useNativeMap && MapViewComponent && MarkerComponent ? (
+        <MapViewComponent
+          customMapStyle={DARK_MAP_STYLE}
+          initialRegion={mapRegion}
+          mapType="standard"
+          pitchEnabled={false}
+          rotateEnabled={false}
+          scrollEnabled={false}
+          showsCompass={false}
+          showsMyLocationButton={false}
+          style={styles.nativeMap}
+          toolbarEnabled={false}
+          userInterfaceStyle="dark"
+          zoomEnabled={false}
+        >
+          <MarkerComponent
+            coordinate={{
+              latitude: event.location.lat,
+              longitude: event.location.lng,
+            }}
+            tracksViewChanges={false}
+          >
+            <View style={[styles.detailMapMarker, { borderColor: getCategoryColor(event.category) }]}>
+              <Image source={{ uri: event.thumbnail }} style={styles.detailMapMarkerImage} />
+            </View>
+          </MarkerComponent>
+        </MapViewComponent>
+      ) : Platform.OS === 'web' ? (
+        <WebMapSurface
+          compact
+          events={[event]}
+          mapRegion={mapRegion}
+          onSelectEvent={() => undefined}
+          selectedEvent={event}
+          size={mapCanvasSize}
+        />
+      ) : (
+        <WebTileMap
+          compact
+          events={[event]}
+          mapRegion={mapRegion}
+          onSelectEvent={() => undefined}
+          selectedEvent={event}
+          size={mapCanvasSize}
+        />
+      )}
+    </View>
+  );
+}
+
 function MapScreen({
   events,
   onCategoryChange,
@@ -1300,29 +1902,104 @@ function MapScreen({
   selectedCategory: Category;
   selectedEvent: CultureEvent & { distanceKm?: number };
 }) {
+  const mapEvents = events.filter(hasValidEventCoordinate).slice(0, 40);
+  const useNativeMap = shouldUseNativeMap() && mapEvents.length > 0;
+  const mapRegion = createEventMapRegion(mapEvents, selectedEvent);
+  const MapViewComponent = NativeMapView;
+  const MarkerComponent = NativeMarker;
+  const [webMapSize, setWebMapSize] = useState({ height: 0, width: 0 });
+  const mapCanvasSize = getMapCanvasSize(webMapSize);
+  const { tabBarHeight } = useTabBarLayout();
+
+  const handleMapLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height, width } = event.nativeEvent.layout;
+
+    setWebMapSize((current) => {
+      if (current.height === height && current.width === width) {
+        return current;
+      }
+
+      return { height, width };
+    });
+  }, []);
+
   return (
     <View style={styles.mapScreen}>
-      <View style={styles.mapCanvas}>
-        <View style={styles.mapGridLineOne} />
-        <View style={styles.mapGridLineTwo} />
-        {events.slice(0, 8).map((event, index) => (
-          <Pressable
-            accessibilityRole="button"
-            key={event.id}
-            onPress={() => onSelectEvent(event.id)}
-            style={[
-              styles.mapPin,
-              {
-                left: `${12 + ((index * 19) % 70)}%`,
-                top: `${22 + ((index * 13) % 52)}%`,
-                borderColor: getCategoryColor(event.category),
-              },
-              selectedEvent.id === event.id && styles.mapPinActive,
-            ]}
+      <View onLayout={handleMapLayout} style={styles.mapCanvas}>
+        {useNativeMap && MapViewComponent && MarkerComponent ? (
+          <MapViewComponent
+            customMapStyle={DARK_MAP_STYLE}
+            initialRegion={mapRegion}
+            mapType="standard"
+            showsCompass={false}
+            showsMyLocationButton={false}
+            showsUserLocation
+            style={styles.nativeMap}
+            toolbarEnabled={false}
+            userInterfaceStyle="dark"
           >
-            <Image source={{ uri: event.thumbnail }} style={styles.mapPinImage} />
-          </Pressable>
-        ))}
+            {mapEvents.map((event) => (
+              <MarkerComponent
+                coordinate={{
+                  latitude: event.location.lat,
+                  longitude: event.location.lng,
+                }}
+                key={event.id}
+                onPress={() => onSelectEvent(event.id)}
+                tracksViewChanges={false}
+              >
+                <View
+                  style={[
+                    styles.mapMarker,
+                    { borderColor: getCategoryColor(event.category) },
+                    selectedEvent.id === event.id && styles.mapMarkerActive,
+                  ]}
+                >
+                  <Image source={{ uri: event.thumbnail }} style={styles.mapMarkerImage} />
+                </View>
+              </MarkerComponent>
+            ))}
+          </MapViewComponent>
+        ) : Platform.OS === 'web' && mapEvents.length > 0 ? (
+          <WebMapSurface
+            events={mapEvents}
+            mapRegion={mapRegion}
+            onSelectEvent={onSelectEvent}
+            selectedEvent={selectedEvent}
+            size={mapCanvasSize}
+          />
+        ) : mapEvents.length > 0 ? (
+          <WebTileMap
+            events={mapEvents}
+            mapRegion={mapRegion}
+            onSelectEvent={onSelectEvent}
+            selectedEvent={selectedEvent}
+            size={mapCanvasSize}
+          />
+        ) : (
+          <>
+            <View style={styles.mapGridLineOne} />
+            <View style={styles.mapGridLineTwo} />
+            {events.slice(0, 8).map((event, index) => (
+              <Pressable
+                accessibilityRole="button"
+                key={event.id}
+                onPress={() => onSelectEvent(event.id)}
+                style={[
+                  styles.mapPin,
+                  {
+                    left: `${12 + ((index * 19) % 70)}%`,
+                    top: `${22 + ((index * 13) % 52)}%`,
+                    borderColor: getCategoryColor(event.category),
+                  },
+                  selectedEvent.id === event.id && styles.mapPinActive,
+                ]}
+              >
+                <Image source={{ uri: event.thumbnail }} style={styles.mapPinImage} />
+              </Pressable>
+            ))}
+          </>
+        )}
       </View>
 
       <View style={styles.mapOverlayTop}>
@@ -1335,7 +2012,7 @@ function MapScreen({
       <Pressable
         accessibilityRole="button"
         onPress={() => onEventPress(selectedEvent)}
-        style={styles.mapBottomCard}
+        style={[styles.mapBottomCard, { bottom: tabBarHeight + 20 }]}
       >
         <Image source={{ uri: selectedEvent.thumbnail }} style={styles.mapBottomImage} />
         <View style={styles.mapBottomInfo}>
@@ -1359,12 +2036,754 @@ function MapScreen({
   );
 }
 
+function WebMapSurface({
+  compact = false,
+  events,
+  mapRegion,
+  onSelectEvent,
+  selectedEvent,
+  size,
+}: {
+  compact?: boolean;
+  events: Array<CultureEvent & { distanceKm?: number }>;
+  mapRegion: MapRegion;
+  onSelectEvent: (eventId: string) => void;
+  selectedEvent: CultureEvent;
+  size: { height: number; width: number };
+}) {
+  if (KAKAO_MAP_APP_KEY) {
+    return (
+      <KakaoWebMap
+        compact={compact}
+        events={events}
+        mapRegion={mapRegion}
+        onSelectEvent={onSelectEvent}
+        selectedEvent={selectedEvent}
+      />
+    );
+  }
+
+  if (NAVER_MAP_CLIENT_ID) {
+    return (
+      <NaverWebMap
+        compact={compact}
+        events={events}
+        mapRegion={mapRegion}
+        onSelectEvent={onSelectEvent}
+        selectedEvent={selectedEvent}
+      />
+    );
+  }
+
+  return (
+    <WebTileMap
+      compact={compact}
+      events={events}
+      mapRegion={mapRegion}
+      onSelectEvent={onSelectEvent}
+      selectedEvent={selectedEvent}
+      size={size}
+    />
+  );
+}
+
+function KakaoWebMap({
+  compact = false,
+  events,
+  mapRegion,
+  onSelectEvent,
+  selectedEvent,
+}: {
+  compact?: boolean;
+  events: Array<CultureEvent & { distanceKm?: number }>;
+  mapRegion: MapRegion;
+  onSelectEvent: (eventId: string) => void;
+  selectedEvent: CultureEvent;
+}) {
+  const containerRef = useRef<View | null>(null);
+  const mapRef = useRef<{
+    setCenter: (position: unknown) => void;
+    setLevel: (level: number) => void;
+  } | null>(null);
+  const markersRef = useRef<Array<{ setMap: (map: unknown | null) => void; setZIndex: (z: number) => void }>>(
+    [],
+  );
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !KAKAO_MAP_APP_KEY) {
+      return undefined;
+    }
+
+    let mounted = true;
+
+    loadKakaoMaps(KAKAO_MAP_APP_KEY)
+      .then(() => {
+        if (mounted) {
+          setReady(true);
+          setFailed(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setFailed(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || failed || mapRef.current || Platform.OS !== 'web') {
+      return undefined;
+    }
+
+    const kakaoMaps = window.kakao?.maps;
+    const element = containerRef.current as unknown as HTMLElement | null;
+
+    if (!kakaoMaps || !element) {
+      return undefined;
+    }
+
+    mapRef.current = new kakaoMaps.Map(element, {
+      center: new kakaoMaps.LatLng(mapRegion.latitude, mapRegion.longitude),
+      draggable: !compact,
+      level: getKakaoMapLevel(mapRegion.longitudeDelta),
+      zoomable: !compact,
+    });
+
+    return () => {
+      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current = [];
+      mapRef.current = null;
+    };
+  }, [compact, failed, mapRegion.latitude, mapRegion.longitude, mapRegion.longitudeDelta, ready]);
+
+  useEffect(() => {
+    const kakaoMaps = window.kakao?.maps;
+    const map = mapRef.current;
+
+    if (!kakaoMaps || !map) {
+      return;
+    }
+
+    map.setCenter(new kakaoMaps.LatLng(mapRegion.latitude, mapRegion.longitude));
+    map.setLevel(getKakaoMapLevel(mapRegion.longitudeDelta));
+  }, [mapRegion.latitude, mapRegion.longitude, mapRegion.longitudeDelta]);
+
+  useEffect(() => {
+    const kakaoMaps = window.kakao?.maps;
+    const map = mapRef.current;
+
+    if (!kakaoMaps || !map) {
+      return;
+    }
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = events.map((event) => {
+      const marker = new kakaoMaps.Marker({
+        map,
+        position: new kakaoMaps.LatLng(event.location.lat, event.location.lng),
+      });
+
+      marker.setZIndex(selectedEvent.id === event.id ? 20 : 10);
+      kakaoMaps.event.addListener(marker, 'click', () => onSelectEvent(event.id));
+
+      return marker;
+    });
+  }, [events, onSelectEvent, selectedEvent.id]);
+
+  if (failed) {
+    return (
+      <WebTileMap
+        compact={compact}
+        events={events}
+        mapRegion={mapRegion}
+        onSelectEvent={onSelectEvent}
+        selectedEvent={selectedEvent}
+        size={{ height: 320, width: 320 }}
+      />
+    );
+  }
+
+  return <View ref={containerRef} style={styles.naverMapSurface} />;
+}
+
+function NaverWebMap({
+  compact = false,
+  events,
+  mapRegion,
+  onSelectEvent,
+  selectedEvent,
+}: {
+  compact?: boolean;
+  events: Array<CultureEvent & { distanceKm?: number }>;
+  mapRegion: MapRegion;
+  onSelectEvent: (eventId: string) => void;
+  selectedEvent: CultureEvent;
+}) {
+  const containerRef = useRef<View | null>(null);
+  const mapRef = useRef<NaverMapInstance | null>(null);
+  const markersRef = useRef<NaverMarkerInstance[]>([]);
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !NAVER_MAP_CLIENT_ID) {
+      return undefined;
+    }
+
+    let mounted = true;
+
+    loadNaverMaps(NAVER_MAP_CLIENT_ID)
+      .then(() => {
+        if (mounted) {
+          setReady(true);
+          setFailed(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setFailed(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || failed || mapRef.current || Platform.OS !== 'web') {
+      return undefined;
+    }
+
+    const naverMaps = window.naver?.maps;
+    const element = containerRef.current as unknown as HTMLElement | null;
+
+    if (!naverMaps || !element) {
+      return undefined;
+    }
+
+    mapRef.current = new naverMaps.Map(element, {
+      center: new naverMaps.LatLng(mapRegion.latitude, mapRegion.longitude),
+      draggable: !compact,
+      keyboardShortcuts: !compact,
+      logoControl: true,
+      mapDataControl: true,
+      mapTypeControl: false,
+      pinchZoom: !compact,
+      scaleControl: !compact,
+      scrollWheel: !compact,
+      zoom: getNaverMapZoom(mapRegion.longitudeDelta),
+      zoomControl: !compact,
+    });
+
+    return () => {
+      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current = [];
+      mapRef.current?.destroy?.();
+      mapRef.current = null;
+    };
+  }, [compact, failed, mapRegion.latitude, mapRegion.longitude, mapRegion.longitudeDelta, ready]);
+
+  useEffect(() => {
+    const naverMaps = window.naver?.maps;
+    const map = mapRef.current;
+
+    if (!naverMaps || !map) {
+      return;
+    }
+
+    map.setCenter(new naverMaps.LatLng(mapRegion.latitude, mapRegion.longitude));
+    map.setZoom(getNaverMapZoom(mapRegion.longitudeDelta));
+  }, [mapRegion.latitude, mapRegion.longitude, mapRegion.longitudeDelta]);
+
+  useEffect(() => {
+    const naverMaps = window.naver?.maps;
+    const map = mapRef.current;
+
+    if (!naverMaps || !map) {
+      return;
+    }
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = events.map((event) => {
+      const size = compact ? 44 : 54;
+      const imageSize = compact ? 38 : 48;
+      const borderWidth = selectedEvent.id === event.id ? 3 : 2;
+      const marker = new naverMaps.Marker({
+        icon: {
+          anchor: new naverMaps.Point(size / 2, size / 2),
+          content: createNaverMarkerHtml({
+            borderColor: getCategoryColor(event.category),
+            borderWidth,
+            imageSize,
+            size,
+            thumbnail: event.thumbnail,
+          }),
+          size: new naverMaps.Size(size, size),
+        },
+        map,
+        position: new naverMaps.LatLng(event.location.lat, event.location.lng),
+        zIndex: selectedEvent.id === event.id ? 20 : 10,
+      });
+
+      naverMaps.Event.addListener(marker, 'click', () => onSelectEvent(event.id));
+
+      return marker;
+    });
+  }, [compact, events, onSelectEvent, selectedEvent.id]);
+
+  if (failed) {
+    return (
+      <WebTileMap
+        compact={compact}
+        events={events}
+        mapRegion={mapRegion}
+        onSelectEvent={onSelectEvent}
+        selectedEvent={selectedEvent}
+        size={{ height: 320, width: 320 }}
+      />
+    );
+  }
+
+  return <View ref={containerRef} style={styles.naverMapSurface} />;
+}
+
+function loadNaverMaps(clientId: string): Promise<void> {
+  if (Platform.OS !== 'web') {
+    return Promise.reject(new Error('Naver Maps JavaScript SDK is web-only.'));
+  }
+
+  if (window.naver?.maps) {
+    return Promise.resolve();
+  }
+
+  if (window.__zeroWonNaverMapPromise) {
+    return window.__zeroWonNaverMapPromise;
+  }
+
+  window.__zeroWonNaverMapPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(NAVER_MAP_SCRIPT_ID);
+
+    window.__zeroWonNaverMapsLoaded = () => {
+      if (window.naver?.maps) {
+        resolve();
+        return;
+      }
+
+      reject(new Error('Naver Maps SDK loaded without map namespace.'));
+    };
+
+    if (existingScript) {
+      return;
+    }
+
+    const script = document.createElement('script');
+
+    script.async = true;
+    script.defer = true;
+    script.id = NAVER_MAP_SCRIPT_ID;
+    script.onerror = () => reject(new Error('Failed to load Naver Maps SDK.'));
+    script.src =
+      `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}` +
+      `&callback=${NAVER_MAP_CALLBACK}`;
+
+    document.head.appendChild(script);
+  });
+
+  return window.__zeroWonNaverMapPromise;
+}
+
+function loadKakaoMaps(appKey: string): Promise<void> {
+  if (Platform.OS !== 'web') {
+    return Promise.reject(new Error('Kakao Maps JavaScript SDK is web-only.'));
+  }
+
+  if (window.kakao?.maps) {
+    return Promise.resolve();
+  }
+
+  if (window.__zeroWonKakaoMapPromise) {
+    return window.__zeroWonKakaoMapPromise;
+  }
+
+  window.__zeroWonKakaoMapPromise = new Promise((resolve, reject) => {
+    const completeLoad = () => {
+      if (!window.kakao?.maps?.load) {
+        reject(new Error('Kakao Maps SDK loaded without map namespace.'));
+        return;
+      }
+
+      window.kakao.maps.load(() => resolve());
+    };
+
+    const existingScript = document.getElementById(KAKAO_MAP_SCRIPT_ID);
+
+    if (existingScript) {
+      completeLoad();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.defer = true;
+    script.id = KAKAO_MAP_SCRIPT_ID;
+    script.onerror = () => reject(new Error('Failed to load Kakao Maps SDK.'));
+    script.onload = () => completeLoad();
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+    document.head.appendChild(script);
+  });
+
+  return window.__zeroWonKakaoMapPromise;
+}
+
+function createNaverMarkerHtml({
+  borderColor,
+  borderWidth,
+  imageSize,
+  size,
+  thumbnail,
+}: {
+  borderColor: string;
+  borderWidth: number;
+  imageSize: number;
+  size: number;
+  thumbnail: string;
+}): string {
+  const imageOffset = Math.max(0, (size - imageSize) / 2 - borderWidth);
+
+  return `
+    <div style="
+      width:${size}px;
+      height:${size}px;
+      border:${borderWidth}px solid ${escapeHtml(borderColor)};
+      border-radius:999px;
+      background:#0F1115;
+      overflow:hidden;
+      box-sizing:border-box;
+      box-shadow:0 4px 14px rgba(0,0,0,.32);
+    ">
+      <img
+        alt=""
+        src="${escapeHtml(thumbnail)}"
+        style="
+          display:block;
+          width:${imageSize}px;
+          height:${imageSize}px;
+          margin:${imageOffset}px;
+          border-radius:999px;
+          object-fit:cover;
+        "
+      />
+    </div>
+  `;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function getNaverMapZoom(longitudeDelta: number): number {
+  if (longitudeDelta <= 0.014) {
+    return 16;
+  }
+
+  if (longitudeDelta <= 0.035) {
+    return 14;
+  }
+
+  if (longitudeDelta <= 0.08) {
+    return 12;
+  }
+
+  return 10;
+}
+
+function getKakaoMapLevel(longitudeDelta: number): number {
+  if (longitudeDelta <= 0.014) {
+    return 2;
+  }
+
+  if (longitudeDelta <= 0.035) {
+    return 4;
+  }
+
+  if (longitudeDelta <= 0.08) {
+    return 6;
+  }
+
+  return 8;
+}
+
+function WebTileMap({
+  compact = false,
+  events,
+  mapRegion,
+  onSelectEvent,
+  selectedEvent,
+  size,
+}: {
+  compact?: boolean;
+  events: Array<CultureEvent & { distanceKm?: number }>;
+  mapRegion: MapRegion;
+  onSelectEvent: (eventId: string) => void;
+  selectedEvent: CultureEvent;
+  size: { height: number; width: number };
+}) {
+  const zoom = getWebMapZoom(mapRegion.longitudeDelta);
+  const centerPoint = projectCoordinate(mapRegion.latitude, mapRegion.longitude, zoom);
+  const left = centerPoint.x - size.width / 2;
+  const top = centerPoint.y - size.height / 2;
+  const tiles = createWebMapTiles(left, top, size, zoom);
+
+  return (
+    <View style={styles.webTileMap}>
+      {tiles.map((tile) => (
+        <Image
+          key={`${tile.zoom}-${tile.x}-${tile.y}`}
+          source={{ uri: getWebTileUrl(tile.zoom, tile.x, tile.y) }}
+          style={[
+            styles.webMapTile,
+            {
+              height: WEB_MAP_TILE_SIZE,
+              left: tile.left,
+              top: tile.top,
+              width: WEB_MAP_TILE_SIZE,
+            },
+          ]}
+        />
+      ))}
+
+      <View pointerEvents="none" style={styles.webMapShade} />
+
+      {events.map((event) => {
+        const point = projectCoordinate(event.location.lat, event.location.lng, zoom);
+        const markerOffset = compact ? 22 : 27;
+
+        return (
+          <Pressable
+            accessibilityRole="button"
+            key={event.id}
+            onPress={() => onSelectEvent(event.id)}
+            style={[
+              compact ? styles.webMapMarkerCompact : styles.webMapMarker,
+              {
+                borderColor: getCategoryColor(event.category),
+                left: point.x - left - markerOffset,
+                top: point.y - top - markerOffset,
+              },
+              selectedEvent.id === event.id &&
+                (compact ? styles.webMapMarkerCompactActive : styles.webMapMarkerActive),
+            ]}
+          >
+            <Image
+              source={{ uri: event.thumbnail }}
+              style={compact ? styles.webMapMarkerImageCompact : styles.webMapMarkerImage}
+            />
+          </Pressable>
+        );
+      })}
+
+      <Text style={compact ? styles.webMapAttributionCompact : styles.webMapAttribution}>
+        © OpenStreetMap © CARTO
+      </Text>
+    </View>
+  );
+}
+
+function formatAuthError(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : '인증 처리 중 문제가 발생했습니다.';
+
+  if (/network request failed/i.test(message)) {
+    return '인증 서버에 연결하지 못했어요. Supabase 프로젝트 URL·키가 맞는지 확인하고, 에뮬레이터 인터넷 연결 후 Expo를 다시 시작해 주세요.';
+  }
+
+  if (/취소/.test(message)) {
+    return message;
+  }
+
+  if (/카카오 로그인 세션/.test(message)) {
+    return message;
+  }
+
+  if (/invalid login credentials/i.test(message)) {
+    return '이메일 또는 비밀번호가 맞지 않아요.';
+  }
+
+  if (/user already registered/i.test(message)) {
+    return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  }
+
+  if (/password should be at least/i.test(message)) {
+    return '비밀번호는 6자 이상이어야 해요.';
+  }
+
+  if (/email address.*invalid/i.test(message)) {
+    return '이메일 형식을 확인해 주세요.';
+  }
+
+  return message;
+}
+
+function getReviewSubmitErrorMessage(error: unknown): string {
+  const message =
+    error instanceof Error ? error.message : '후기 등록 중 문제가 발생했습니다.';
+  const errorCode = typeof error === 'object' && error && 'code' in error ? error.code : '';
+  const normalizedCode = typeof errorCode === 'string' ? errorCode : '';
+
+  if (normalizedCode === 'UNAUTHORIZED' || /로그인이 필요/.test(message)) {
+    return '로그인 후 후기를 남길 수 있어요.';
+  }
+
+  if (normalizedCode === 'REVIEW_DUPLICATED') {
+    return '이미 이 행사에 후기를 남겼어요.';
+  }
+
+  if (normalizedCode === 'INVALID_REVIEW_PAYLOAD') {
+    return '별점은 1~5점, 후기는 500자 이하로 입력해 주세요.';
+  }
+
+  if (normalizedCode === 'REVIEW_RATE_LIMITED') {
+    return '요청이 너무 빨라요. 잠시 후 다시 시도해 주세요.';
+  }
+
+  return message;
+}
+
+function hasValidEventCoordinate(event: CultureEvent): boolean {
+  return Number.isFinite(event.location.lat) && Number.isFinite(event.location.lng);
+}
+
+function shouldUseNativeMap(): boolean {
+  return Platform.OS === 'ios' && NativeMapView !== null && NativeMarker !== null;
+}
+
+function getMapCanvasSize(measured: { height: number; width: number }): {
+  height: number;
+  width: number;
+} {
+  if (measured.width > 0 && measured.height > 0) {
+    return measured;
+  }
+
+  const { height, width } = Dimensions.get('window');
+  return { width, height: Math.max(Math.round(height * 0.72), 480) };
+}
+
+function createEventMapRegion(
+  events: Array<CultureEvent & { distanceKm?: number }>,
+  selectedEvent: CultureEvent,
+  fallbackDelta = {
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.06,
+  },
+): MapRegion {
+  const validEvents = events.filter(hasValidEventCoordinate);
+  const selectedCoordinate = hasValidEventCoordinate(selectedEvent)
+    ? selectedEvent.location
+    : validEvents[0]?.location;
+
+  if (validEvents.length === 0 || !selectedCoordinate) {
+    return {
+      latitude: SEOUL_CITY_HALL.latitude,
+      longitude: SEOUL_CITY_HALL.longitude,
+      latitudeDelta: fallbackDelta.latitudeDelta,
+      longitudeDelta: fallbackDelta.longitudeDelta,
+    };
+  }
+
+  const latitudes = validEvents.map((event) => event.location.lat);
+  const longitudes = validEvents.map((event) => event.location.lng);
+  const latitudeSpan = Math.max(...latitudes) - Math.min(...latitudes);
+  const longitudeSpan = Math.max(...longitudes) - Math.min(...longitudes);
+
+  return {
+    latitude: selectedCoordinate.lat,
+    longitude: selectedCoordinate.lng,
+    latitudeDelta: Math.max(fallbackDelta.latitudeDelta, latitudeSpan * 1.6),
+    longitudeDelta: Math.max(fallbackDelta.longitudeDelta, longitudeSpan * 1.6),
+  };
+}
+
+function projectCoordinate(latitude: number, longitude: number, zoom: number) {
+  const sinLatitude = Math.sin((latitude * Math.PI) / 180);
+  const scale = WEB_MAP_TILE_SIZE * 2 ** zoom;
+
+  return {
+    x: ((longitude + 180) / 360) * scale,
+    y:
+      (0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI)) *
+      scale,
+  };
+}
+
+function createWebMapTiles(
+  left: number,
+  top: number,
+  size: { height: number; width: number },
+  zoom: number,
+) {
+  if (size.height <= 0 || size.width <= 0) {
+    return [];
+  }
+
+  const maxTile = 2 ** zoom;
+  const startX = Math.floor(left / WEB_MAP_TILE_SIZE);
+  const endX = Math.floor((left + size.width) / WEB_MAP_TILE_SIZE);
+  const startY = Math.floor(top / WEB_MAP_TILE_SIZE);
+  const endY = Math.floor((top + size.height) / WEB_MAP_TILE_SIZE);
+  const tiles: Array<{ left: number; top: number; x: number; y: number; zoom: number }> = [];
+
+  for (let x = startX; x <= endX; x += 1) {
+    for (let y = startY; y <= endY; y += 1) {
+      if (y < 0 || y >= maxTile) {
+        continue;
+      }
+
+      tiles.push({
+        left: x * WEB_MAP_TILE_SIZE - left,
+        top: y * WEB_MAP_TILE_SIZE - top,
+        x: ((x % maxTile) + maxTile) % maxTile,
+        y,
+        zoom,
+      });
+    }
+  }
+
+  return tiles;
+}
+
+function getWebMapZoom(longitudeDelta: number): number {
+  const zoom = Math.round(Math.log2(360 / Math.max(longitudeDelta, 0.03)));
+
+  return Math.min(WEB_MAP_MAX_ZOOM, Math.max(WEB_MAP_MIN_ZOOM, zoom));
+}
+
+function getWebTileUrl(zoom: number, x: number, y: number): string {
+  return `https://a.basemaps.cartocdn.com/dark_all/${zoom}/${x}/${y}.png`;
+}
+
 function SearchScreen({
   onCancel,
   onEventPress,
+  onPlacePick,
   onRecentClear,
   onRecentPick,
   onSubmit,
+  places,
+  placesError,
+  placesLoading,
   query,
   recentSearches,
   results,
@@ -1372,9 +2791,13 @@ function SearchScreen({
 }: {
   onCancel: () => void;
   onEventPress: (event: CultureEvent) => void;
+  onPlacePick: (place: KakaoPlace) => void;
   onRecentClear: () => void;
   onRecentPick: (query: string) => void;
   onSubmit: () => void;
+  places: KakaoPlace[];
+  placesError: string;
+  placesLoading: boolean;
   query: string;
   recentSearches: string[];
   results: Array<CultureEvent & { distanceKm?: number }>;
@@ -1384,7 +2807,7 @@ function SearchScreen({
 
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
+      <OverlaySafeArea>
         <View style={styles.searchTop}>
           <TextInput
             autoFocus
@@ -1433,24 +2856,59 @@ function SearchScreen({
                 ))}
               </View>
             </>
-          ) : results.length > 0 ? (
-            <View style={styles.resultList}>
-              {results.map((event) => (
-                <ListEventCard
-                  event={event}
-                  key={event.id}
-                  onPress={() => onEventPress(event)}
-                />
-              ))}
-            </View>
           ) : (
-            <EmptyState
-              description="다른 키워드나 더 넓은 필터로 다시 검색해보세요."
-              title="검색 결과가 없어요"
-            />
+            <>
+              <SectionHeader title="카카오 장소 추천" />
+              {placesLoading ? (
+                <View style={styles.searchPlaceLoading}>
+                  <ActivityIndicator color={colors.accent} size="small" />
+                  <Text style={styles.searchPlaceLoadingText}>장소 검색 중...</Text>
+                </View>
+              ) : null}
+              {!placesLoading && placesError ? (
+                <Text style={styles.searchPlaceErrorText}>{placesError}</Text>
+              ) : null}
+              {!placesLoading && places.length > 0 ? (
+                <View style={styles.searchPlaceList}>
+                  {places.map((place) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      key={place.id}
+                      onPress={() => onPlacePick(place)}
+                      style={styles.searchPlaceItem}
+                    >
+                      <Text numberOfLines={1} style={styles.searchPlaceTitle}>{place.placeName}</Text>
+                      <Text numberOfLines={1} style={styles.searchPlaceMeta}>
+                        {place.roadAddressName || place.addressName}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+              {results.length > 0 ? (
+                <>
+                  <SectionHeader title="앱 내 문화행사 결과" />
+                  <View style={styles.resultList}>
+                    {results.map((event) => (
+                      <ListEventCard
+                        event={event}
+                        key={event.id}
+                        onPress={() => onEventPress(event)}
+                      />
+                    ))}
+                  </View>
+                </>
+              ) : null}
+              {!placesLoading && places.length === 0 && results.length === 0 ? (
+                <EmptyState
+                  description="다른 키워드나 더 넓은 필터로 다시 검색해보세요."
+                  title="검색 결과가 없어요"
+                />
+              ) : null}
+            </>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -1472,7 +2930,7 @@ function FilterScreen({
 }) {
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
+      <OverlaySafeArea>
         <TopBar onBack={onBack} rightLabel="초기화" onRight={onReset} title="필터" />
         <ScrollView contentContainerStyle={styles.filterContent}>
           <FilterSection title={`지역 · 반경 ${draft.radiusKm}km`}>
@@ -1522,7 +2980,7 @@ function FilterScreen({
             <Text style={styles.applyButtonText}>결과 {resultCount}개 보기</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -1530,104 +2988,134 @@ function FilterScreen({
 function AuthScreen({
   authConfigured,
   errorMessage,
+  kakaoConfigured,
   loading,
   mode,
   onBack,
+  onKakaoPress,
   onModeChange,
   onSubmit,
 }: {
   authConfigured: boolean;
   errorMessage: string;
+  kakaoConfigured: boolean;
   loading: boolean;
   mode: AuthMode;
   onBack: () => void;
+  onKakaoPress: () => void;
   onModeChange: (mode: AuthMode) => void;
   onSubmit: (email: string, password: string) => void;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
   const isSignIn = mode === 'signIn';
   const canSubmit = email.trim().includes('@') && password.length >= 6 && !loading;
+  const canUseKakao = authConfigured && kakaoConfigured;
 
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
-        <TopBar onBack={onBack} title={isSignIn ? '로그인' : '회원가입'} />
+      <OverlaySafeArea>
+        <TopBar onBack={onBack} showClose title="시작하기" />
         <ScrollView contentContainerStyle={styles.authContent}>
           <View style={styles.authCard}>
             <BrandTitle />
-            <Text style={styles.authTitle}>
-              {isSignIn ? '나만의 문화 리스트로 이어가기' : '무료 문화생활을 내 계정에 저장하기'}
-            </Text>
+            <Text style={styles.authTitle}>3초 만에 시작하기</Text>
             <Text style={styles.authDescription}>
-              저장함, 일정, 관심 설정은 로그인 후 여러 기기에서 이어집니다.
+              카카오로 로그인하면 저장함·일정·관심 설정을 이 기기와 계정에 연결할 수 있어요.
             </Text>
 
             {!authConfigured ? (
               <View style={styles.authNotice}>
                 <Text style={styles.authNoticeTitle}>Auth 환경변수 필요</Text>
                 <Text style={styles.authNoticeText}>
-                  Vercel과 `.env.local`에 `EXPO_PUBLIC_SUPABASE_URL`,
-                  `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 설정하면 실제 로그인이
-                  활성화됩니다.
+                  `.env.local`에 Supabase URL·키를 넣고, Supabase 대시보드에서 Kakao
+                  provider를 켜 주세요.
                 </Text>
               </View>
             ) : null}
 
-            <TextInput
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              onChangeText={setEmail}
-              placeholder="이메일"
-              placeholderTextColor={colors.textMuted}
-              style={styles.authInput}
-              value={email}
-            />
-            <TextInput
-              autoCapitalize="none"
-              onChangeText={setPassword}
-              placeholder="비밀번호 6자 이상"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              style={styles.authInput}
-              value={password}
-            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={!canUseKakao || loading}
+              onPress={onKakaoPress}
+              style={[styles.kakaoButton, (!canUseKakao || loading) && styles.disabledButton]}
+            >
+              {loading ? (
+                <ActivityIndicator color="#191600" size="small" />
+              ) : (
+                <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
+              )}
+            </Pressable>
 
-            {errorMessage ? (
-              <Text style={styles.authError}>{errorMessage}</Text>
+            {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
+
+            {__DEV__ && canUseKakao ? (
+              <Text selectable style={styles.authRedirectHint}>
+                Supabase Redirect URLs에 추가: {getKakaoRedirectUri()}
+              </Text>
             ) : null}
 
             <Pressable
               accessibilityRole="button"
-              disabled={!canSubmit || !authConfigured}
-              onPress={() => onSubmit(email.trim(), password)}
-              style={[
-                styles.authPrimaryButton,
-                (!canSubmit || !authConfigured) && styles.disabledButton,
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.onAccent} size="small" />
-              ) : (
-                <Text style={styles.authPrimaryButtonText}>
-                  {isSignIn ? '로그인' : '회원가입'}
-                </Text>
-              )}
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => onModeChange(isSignIn ? 'signUp' : 'signIn')}
+              onPress={() => setShowEmailLogin((current) => !current)}
               style={styles.authSwitchButton}
             >
               <Text style={styles.authSwitchText}>
-                {isSignIn ? '처음이라면 회원가입' : '이미 계정이 있다면 로그인'}
+                {showEmailLogin ? '카카오 로그인으로 돌아가기' : '이메일로 로그인 (선택)'}
               </Text>
             </Pressable>
+
+            {showEmailLogin ? (
+              <>
+                <TextInput
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  placeholder="이메일"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.authInput}
+                  value={email}
+                />
+                <TextInput
+                  autoCapitalize="none"
+                  onChangeText={setPassword}
+                  placeholder="비밀번호 6자 이상"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry
+                  style={styles.authInput}
+                  value={password}
+                />
+
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!canSubmit || !authConfigured}
+                  onPress={() => onSubmit(email.trim(), password)}
+                  style={[
+                    styles.authPrimaryButton,
+                    (!canSubmit || !authConfigured) && styles.disabledButton,
+                  ]}
+                >
+                  <Text style={styles.authPrimaryButtonText}>
+                    {isSignIn ? '이메일로 로그인' : '이메일로 회원가입'}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => onModeChange(isSignIn ? 'signUp' : 'signIn')}
+                  style={styles.authSwitchButton}
+                >
+                  <Text style={styles.authSwitchText}>
+                    {isSignIn ? '처음이라면 이메일 회원가입' : '이미 계정이 있다면 이메일 로그인'}
+                  </Text>
+                </Pressable>
+              </>
+            ) : null}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -1673,7 +3161,7 @@ function ProfileScreen({
 
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
+      <OverlaySafeArea>
         <TopBar onBack={onBack} title="프로필 편집" />
         <ScrollView contentContainerStyle={styles.filterContent}>
           <FilterSection title="기본 정보">
@@ -1737,7 +3225,7 @@ function ProfileScreen({
             )}
           </Pressable>
         </View>
-      </SafeAreaView>
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -1761,9 +3249,12 @@ function SavedScreen({
   const filtered = events.filter(
     (event) => category === '전체' || event.category === category,
   );
+  const { scrollPaddingBottom } = useTabBarLayout();
 
   return (
-    <ScrollView contentContainerStyle={styles.tabContent}>
+    <ScrollView
+      contentContainerStyle={[styles.tabContent, { paddingBottom: scrollPaddingBottom }]}
+    >
       <View style={styles.simpleHeader}>
         <Text style={styles.screenTitle}>저장함</Text>
         <Text style={styles.headerTextButton}>편집</Text>
@@ -1812,6 +3303,7 @@ function MyScreen({
   onProfilePress,
   onSettingsPress,
   profileName,
+  reviewCount,
   savedCount,
   userEmail,
   viewerError,
@@ -1825,13 +3317,18 @@ function MyScreen({
   onProfilePress: () => void;
   onSettingsPress: () => void;
   profileName: string | null;
+  reviewCount: number;
   savedCount: number;
   userEmail: string;
   viewerError: string;
   viewerLoading: boolean;
 }) {
+  const { scrollPaddingBottom } = useTabBarLayout();
+
   return (
-    <ScrollView contentContainerStyle={styles.tabContent}>
+    <ScrollView
+      contentContainerStyle={[styles.tabContent, { paddingBottom: scrollPaddingBottom }]}
+    >
       <View style={styles.simpleHeader}>
         <Text style={styles.screenTitle}>마이</Text>
         <View style={styles.headerActions}>
@@ -1884,7 +3381,7 @@ function MyScreen({
       <View style={styles.profileStats}>
         <ProfileStat label="저장한 콘텐츠" value={savedCount} />
         <ProfileStat label="방문한 곳" value={isSignedIn ? MOCK_USER.visitedCount : 0} />
-        <ProfileStat label="후기" value={isSignedIn ? MOCK_USER.reviewCount : 0} />
+        <ProfileStat label="후기" value={reviewCount} />
       </View>
 
       <View style={styles.menuList}>
@@ -1911,7 +3408,7 @@ function ItineraryScreen({
 }) {
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
+      <OverlaySafeArea>
         <TopBar onBack={onBack} title="나의 일정" />
         <ScrollView contentContainerStyle={styles.overlayContent}>
           <View style={styles.segmentRow}>
@@ -1946,7 +3443,7 @@ function ItineraryScreen({
             />
           )}
         </ScrollView>
-      </SafeAreaView>
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -1964,7 +3461,7 @@ function NotificationsScreen({
 }) {
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
+      <OverlaySafeArea>
         <TopBar onBack={onBack} onRight={onSettingsPress} rightLabel="설정" title="알림" />
         <ScrollView contentContainerStyle={styles.overlayContent}>
           {notifications.length > 0 ? (
@@ -1993,7 +3490,7 @@ function NotificationsScreen({
             />
           )}
         </ScrollView>
-      </SafeAreaView>
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -2048,7 +3545,7 @@ function SettingsScreen({
 
   return (
     <View style={styles.overlay}>
-      <SafeAreaView style={styles.overlaySafe}>
+      <OverlaySafeArea>
         <TopBar onBack={onBack} title="설정" />
         <ScrollView contentContainerStyle={styles.overlayContent}>
           <SettingsSection title="계정">
@@ -2111,25 +3608,214 @@ function SettingsScreen({
             <MenuRow label="개인정보 처리" onPress={() => Alert.alert('개인정보 처리', '계정 삭제와 개인정보 고지는 다음 단계에서 확정합니다.')} />
           </SettingsSection>
         </ScrollView>
-      </SafeAreaView>
+      </OverlaySafeArea>
+    </View>
+  );
+}
+
+function ReviewWriteScreen({
+  defaultEventId,
+  events,
+  onBack,
+  onSubmit,
+  pinnedEvent,
+}: {
+  defaultEventId: string;
+  events: CultureEvent[];
+  onBack: () => void;
+  onSubmit: (input: {
+    comment: string;
+    eventId: string;
+    eventTitle: string;
+    rating: number;
+  }) => Promise<void>;
+  pinnedEvent: CultureEvent | null;
+}) {
+  const isPinnedMode = Boolean(pinnedEvent);
+  const [selectedEventId, setSelectedEventId] = useState(
+    pinnedEvent?.id ?? events.find((event) => event.id === defaultEventId)?.id ?? events[0]?.id ?? '',
+  );
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const selectedEvent =
+    pinnedEvent ??
+    events.find((event) => event.id === selectedEventId) ??
+    events[0] ??
+    null;
+
+  const canSubmit = Boolean(selectedEvent) && rating >= 1;
+
+  async function handleSubmit() {
+    if (!selectedEvent) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    try {
+      await onSubmit({
+        comment: comment.trim(),
+        eventId: selectedEvent.id,
+        eventTitle: selectedEvent.title,
+        rating,
+      });
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : '후기 등록에 실패했어요. 잠시 후 다시 시도해 주세요.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <View style={styles.overlay}>
+      <OverlaySafeArea>
+        <TopBar
+          onBack={onBack}
+          showClose
+          title="빠른 후기"
+        />
+        <ScrollView
+          contentContainerStyle={styles.reviewContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {selectedEvent ? (
+            <>
+              <View style={styles.reviewQuickCard}>
+                <Image source={{ uri: selectedEvent.thumbnail }} style={styles.reviewQuickImage} />
+                <View style={styles.reviewQuickInfo}>
+                  <Text numberOfLines={2} style={styles.reviewQuickTitle}>
+                    {selectedEvent.title}
+                  </Text>
+                  <Text style={styles.reviewQuickMeta}>
+                    {selectedEvent.category} · {selectedEvent.priceLabel}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.reviewQuickHint}>현재 지도/선택 기준 장소에 바로 남겨요.</Text>
+
+              {!isPinnedMode ? (
+                <FilterSection title="현재 위치 기준 주변 장소">
+                  {events.length > 0 ? (
+                    <View style={styles.reviewEventList}>
+                      {events.map((event) => (
+                        <SelectableChip
+                          key={event.id}
+                          label={event.title}
+                          selected={selectedEvent?.id === event.id}
+                          onPress={() => setSelectedEventId(event.id)}
+                        />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.reviewHint}>
+                      현재 위치 근처 장소를 찾지 못했어요. 잠시 후 다시 시도해 주세요.
+                    </Text>
+                  )}
+                </FilterSection>
+              ) : null}
+
+              <View style={styles.reviewStarRowCentered}>
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Pressable
+                    accessibilityLabel={`${value}점`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: rating >= value }}
+                    key={value}
+                    onPress={() => setRating(value)}
+                    style={styles.reviewStarButton}
+                  >
+                    <Text style={[styles.reviewStarLarge, rating >= value && styles.reviewStarActive]}>
+                      ★
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <TextInput
+                onChangeText={setComment}
+                placeholder="한 줄만 적어도 좋아요 (선택)"
+                placeholderTextColor={colors.textMuted}
+                returnKeyType="done"
+                style={styles.reviewQuickInput}
+                value={comment}
+              />
+
+              <Pressable
+                accessibilityRole="button"
+                disabled={!canSubmit || submitting}
+                onPress={handleSubmit}
+                style={[styles.reviewQuickSubmit, (!canSubmit || submitting) && styles.disabledButton]}
+              >
+                <Text style={styles.authPrimaryButtonText}>
+                  {submitting ? '등록 중...' : '후기 남기기'}
+                </Text>
+              </Pressable>
+              {submitError ? <Text style={styles.reviewErrorText}>{submitError}</Text> : null}
+            </>
+          ) : (
+            <Text style={styles.reviewHint}>표시할 행사가 없어요. 피드/지도에서 먼저 선택해 주세요.</Text>
+          )}
+        </ScrollView>
+      </OverlaySafeArea>
+    </View>
+  );
+}
+
+function ReviewSuccessModal({
+  onConfirm,
+  payload,
+}: {
+  onConfirm: () => void;
+  payload: ReviewSuccessPayload;
+}) {
+  return (
+    <View style={styles.successModalBackdrop}>
+      <OverlaySafeArea>
+        <View style={styles.successModalContainer}>
+          <View style={styles.successModalCard}>
+            <Text accessibilityRole="image" style={styles.successModalEmoji}>
+              🎉
+            </Text>
+            <Text style={styles.successModalTitle}>후기 등록 완료!</Text>
+            <Text style={styles.successModalBody}>
+              {payload.eventTitle}에 남긴 {payload.rating}점 후기가 저장됐어요. 좋은 시간을 기록해줘서 고마워요!
+            </Text>
+            <Pressable accessibilityRole="button" onPress={onConfirm} style={styles.authPrimaryButton}>
+              <Text style={styles.authPrimaryButtonText}>확인</Text>
+            </Pressable>
+          </View>
+        </View>
+      </OverlaySafeArea>
     </View>
   );
 }
 
 function BottomTabBar({
   activeTab,
+  onFabPress,
   onTabPress,
 }: {
   activeTab: TabKey;
+  onFabPress: () => void;
   onTabPress: (tab: TabKey) => void;
 }) {
+  const { tabBarStyle } = useTabBarLayout();
+
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, tabBarStyle]}>
       <TabButton active={activeTab === 'feed'} label="피드" onPress={() => onTabPress('feed')} symbol="H" />
       <TabButton active={activeTab === 'map'} label="지도" onPress={() => onTabPress('map')} symbol="P" />
       <Pressable
         accessibilityRole="button"
-        onPress={() => Alert.alert('액션', '행사 제보와 후기 작성은 MVP 후속 범위입니다.')}
+        onPress={onFabPress}
         style={styles.centerFab}
       >
         <Text style={styles.centerFabText}>+</Text>
@@ -2439,26 +4125,53 @@ function IconButton({
   );
 }
 
+function OverlaySafeArea({ children }: { children: React.ReactNode }) {
+  return (
+    <SafeAreaOverlay edges={['left', 'right', 'top']} style={styles.overlaySafe}>
+      {children}
+    </SafeAreaOverlay>
+  );
+}
+
 function TopBar({
   onBack,
   onRight,
   rightLabel,
+  showClose = false,
   title,
 }: {
   onBack: () => void;
   onRight?: () => void;
   rightLabel?: string;
+  showClose?: boolean;
   title: string;
 }) {
+  const rightAction = onRight ?? (showClose ? onBack : undefined);
+  const resolvedRightLabel = rightLabel ?? (showClose ? '닫기' : undefined);
+
   return (
     <View style={styles.topBar}>
-      <Pressable accessibilityRole="button" onPress={onBack} style={styles.topBack}>
-        <Text style={styles.topBackText}>&lt;</Text>
+      <Pressable
+        accessibilityLabel="뒤로"
+        accessibilityRole="button"
+        hitSlop={8}
+        onPress={onBack}
+        style={styles.topBack}
+      >
+        <Text style={styles.topBackText}>←</Text>
       </Pressable>
-      <Text style={styles.topTitle}>{title}</Text>
-      {rightLabel ? (
-        <Pressable accessibilityRole="button" onPress={onRight} style={styles.topRight}>
-          <Text style={styles.topRightText}>{rightLabel}</Text>
+      <Text numberOfLines={1} style={styles.topTitle}>
+        {title}
+      </Text>
+      {resolvedRightLabel && rightAction ? (
+        <Pressable
+          accessibilityLabel="닫기"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={rightAction}
+          style={styles.topRight}
+        >
+          <Text style={styles.topRightText}>{resolvedRightLabel}</Text>
         </Pressable>
       ) : (
         <View style={styles.topRight} />
@@ -2781,7 +4494,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   tabContent: {
-    paddingBottom: 112,
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 28 : 14,
   },
@@ -3220,6 +4932,71 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: 20,
   },
+  detailReviewSection: {
+    gap: 10,
+    marginTop: 20,
+  },
+  detailReviewTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  detailReviewLoadingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  detailReviewMessageCard: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+    padding: 12,
+  },
+  detailReviewItem: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderSubtle,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+    padding: 12,
+  },
+  detailReviewHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailReviewAuthor: {
+    color: colors.textPrimary,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    marginRight: 8,
+  },
+  detailReviewRating: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  detailReviewActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  detailReviewComment: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  detailReviewMetaText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
   hashRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3252,6 +5029,15 @@ const styles = StyleSheet.create({
     height: 180,
     justifyContent: 'center',
     marginTop: 12,
+    overflow: 'hidden',
+  },
+  mapPreviewSurface: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapPreviewFallback: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   mapPreviewPin: {
     alignItems: 'center',
@@ -3288,6 +5074,18 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '900',
+  },
+  outlineTinyButton: {
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  outlineTinyButtonText: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '800',
   },
   bottomActions: {
     backgroundColor: colors.bg,
@@ -3337,6 +5135,33 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
+  nativeMap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  webTileMap: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#111419',
+    overflow: 'hidden',
+  },
+  naverMapSurface: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.bgRaised,
+  },
+  webMapTile: {
+    position: 'absolute',
+  },
+  webMapShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(9, 11, 15, 0.34)',
+  },
+  webMapAttribution: {
+    bottom: 154,
+    color: 'rgba(245, 247, 250, 0.54)',
+    fontSize: 10,
+    fontWeight: '700',
+    left: 22,
+    position: 'absolute',
+  },
   mapGridLineOne: {
     backgroundColor: '#20242B',
     height: 2,
@@ -3374,6 +5199,90 @@ const styles = StyleSheet.create({
     height: 48,
     width: 48,
   },
+  mapMarker: {
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderRadius: 28,
+    borderWidth: 2,
+    height: 54,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 54,
+  },
+  mapMarkerActive: {
+    borderColor: colors.accent,
+    borderWidth: 3,
+    transform: [{ scale: 1.12 }],
+  },
+  mapMarkerImage: {
+    borderRadius: 24,
+    height: 48,
+    width: 48,
+  },
+  detailMapMarker: {
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderRadius: 24,
+    borderWidth: 2,
+    height: 46,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 46,
+  },
+  detailMapMarkerImage: {
+    borderRadius: 20,
+    height: 40,
+    width: 40,
+  },
+  webMapMarker: {
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderRadius: 28,
+    borderWidth: 2,
+    height: 54,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'absolute',
+    width: 54,
+  },
+  webMapMarkerActive: {
+    borderColor: colors.accent,
+    borderWidth: 3,
+    transform: [{ scale: 1.12 }],
+  },
+  webMapMarkerImage: {
+    borderRadius: 24,
+    height: 48,
+    width: 48,
+  },
+  webMapMarkerCompact: {
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderRadius: 24,
+    borderWidth: 2,
+    height: 44,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'absolute',
+    width: 44,
+  },
+  webMapMarkerCompactActive: {
+    borderColor: colors.accent,
+    borderWidth: 3,
+  },
+  webMapMarkerImageCompact: {
+    borderRadius: 19,
+    height: 38,
+    width: 38,
+  },
+  webMapAttributionCompact: {
+    bottom: 8,
+    color: 'rgba(245, 247, 250, 0.54)',
+    fontSize: 10,
+    fontWeight: '700',
+    left: 10,
+    position: 'absolute',
+  },
   mapOverlayTop: {
     left: 20,
     position: 'absolute',
@@ -3400,7 +5309,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 14,
     borderWidth: 1,
-    bottom: 102,
     flexDirection: 'row',
     gap: 12,
     left: 20,
@@ -3458,6 +5366,51 @@ const styles = StyleSheet.create({
   },
   overlaySafe: {
     flex: 1,
+  },
+  successModalBackdrop: {
+    backgroundColor: colors.scrim,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 30,
+  },
+  successModalContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  successModalCard: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    maxWidth: 420,
+    padding: 22,
+    width: '100%',
+  },
+  successModalEmoji: {
+    fontSize: 44,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  successModalTitle: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 32,
+    textAlign: 'center',
+  },
+  successModalBody: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 23,
+    marginBottom: 18,
+    marginTop: 10,
+    textAlign: 'center',
   },
   overlayContent: {
     paddingBottom: 40,
@@ -3535,6 +5488,52 @@ const styles = StyleSheet.create({
   resultList: {
     gap: 10,
   },
+  searchPlaceLoading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  searchPlaceLoadingText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  searchPlaceErrorText: {
+    color: colors.warning,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  searchPlaceList: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  searchPlaceItem: {
+    borderBottomColor: colors.borderSubtle,
+    borderBottomWidth: 1,
+    gap: 4,
+    minHeight: 56,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  searchPlaceTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  searchPlaceMeta: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   authContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -3609,6 +5608,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50,
   },
+  kakaoButton: {
+    alignItems: 'center',
+    backgroundColor: '#FEE500',
+    borderRadius: 14,
+    justifyContent: 'center',
+    marginBottom: 12,
+    minHeight: 56,
+  },
+  kakaoButtonText: {
+    color: '#191600',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  authRedirectHint: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 16,
+    marginBottom: 8,
+  },
   authPrimaryButtonText: {
     color: colors.onAccent,
     fontSize: 15,
@@ -3623,6 +5642,136 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '800',
+  },
+  reviewContent: {
+    paddingBottom: 48,
+    paddingHorizontal: 20,
+  },
+  reviewLead: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 21,
+    marginBottom: 20,
+  },
+  reviewEventList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  reviewHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  reviewStarRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  reviewStarButton: {
+    padding: 4,
+  },
+  reviewStar: {
+    color: colors.textMuted,
+    fontSize: 34,
+    fontWeight: '400',
+  },
+  reviewStarActive: {
+    color: colors.accent,
+  },
+  reviewInput: {
+    marginBottom: 0,
+    minHeight: 96,
+    paddingTop: 12,
+    textAlignVertical: 'top',
+  },
+  reviewQuickCard: {
+    alignItems: 'center',
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+    padding: 14,
+  },
+  reviewQuickImage: {
+    backgroundColor: colors.bgRaised,
+    borderRadius: 12,
+    height: 72,
+    width: 72,
+  },
+  reviewQuickInfo: {
+    flex: 1,
+  },
+  reviewQuickTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  reviewQuickMeta: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 6,
+  },
+  reviewQuickHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  reviewStarRowCentered: {
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  reviewStarLarge: {
+    color: colors.textMuted,
+    fontSize: 42,
+    fontWeight: '400',
+  },
+  reviewQuickInput: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 16,
+    minHeight: 48,
+    paddingHorizontal: 14,
+  },
+  reviewQuickSubmit: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    justifyContent: 'center',
+    marginBottom: 12,
+    minHeight: 56,
+  },
+  reviewChangePlace: {
+    alignItems: 'center',
+    padding: 10,
+  },
+  reviewChangePlaceText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  reviewErrorText: {
+    color: colors.warning,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   disabledButton: {
     opacity: 0.45,
@@ -3664,29 +5813,32 @@ const styles = StyleSheet.create({
   topBar: {
     alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     minHeight: 56,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
   },
   topBack: {
     alignItems: 'center',
-    height: 42,
+    height: 44,
     justifyContent: 'center',
-    width: 42,
+    width: 56,
   },
   topBackText: {
     color: colors.textPrimary,
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '900',
   },
   topTitle: {
     color: colors.textPrimary,
+    flex: 1,
     fontSize: 18,
     fontWeight: '900',
+    textAlign: 'center',
   },
   topRight: {
-    alignItems: 'flex-end',
-    minWidth: 58,
+    alignItems: 'center',
+    height: 44,
+    justifyContent: 'center',
+    width: 56,
   },
   topRightText: {
     color: colors.textSecondary,
@@ -4143,10 +6295,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
-    height: 82,
     justifyContent: 'space-around',
     left: 0,
-    paddingBottom: 10,
     position: 'absolute',
     right: 0,
   },

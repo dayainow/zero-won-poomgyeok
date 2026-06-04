@@ -2,6 +2,7 @@
   "expo": {
     "name": "0원의품격",
     "slug": "zero-won-poomgyeok",
+    "scheme": "zero-won-poomgyeok",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -34,6 +35,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ea4a9552-a81d-4317-96eb-4ab3bb9b7e5f"
+      }
+    },
+    "owner": "dayainow",
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

@@ -47,6 +47,45 @@ type DatabaseRecentSearch = {
   searched_at: string;
 };
 
+type DatabaseReview = {
+  id: string;
+  user_id: string;
+  event_id: string;
+  event_title: string;
+  rating: number;
+  comment: string;
+  status: 'visible' | 'hidden';
+  hidden_reason: string | null;
+  hidden_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type DatabaseReviewReport = {
+  id: string;
+  review_id: string;
+  reporter_user_id: string;
+  reason: string;
+  created_at: string;
+};
+
+type ReviewInput = {
+  eventId: string;
+  eventTitle: string;
+  rating: number;
+  comment: string;
+};
+
+type ReviewQueryOptions = {
+  limit?: number;
+};
+
+const REVIEW_COMMENT_MAX_LENGTH = 300;
+const REVIEW_DUPLICATE_WINDOW_MS = 5 * 60 * 1000;
+const REVIEW_DEFAULT_LIMIT = 20;
+const REVIEW_MAX_LIMIT = 50;
+const REPORT_HIDE_THRESHOLD = 3;
+
 export type ViewerContext = {
   profile: DatabaseProfile;
   supabase: SupabaseClient;
@@ -266,6 +305,194 @@ export async function saveRecentSearchForViewer(
   }
 }
 
+export async function createReviewForViewer(
+  { supabase, user }: ViewerContext,
+  input: ReviewInput,
+) {
+  const normalized = normalizeReviewInput(input);
+  validateReviewInput(normalized);
+  await enforceDuplicateReviewWindow(
+    supabase,
+    user.id,
+    normalized.eventId,
+    REVIEW_DUPLICATE_WINDOW_MS,
+  );
+
+  const now = new Date().toISOString();
+  const insertStartedAt = Date.now();
+  const { data, error } = await supabase
+    .from('reviews')
+    .insert({
+      comment: normalized.comment,
+      created_at: now,
+      event_id: normalized.eventId,
+      event_title: normalized.eventTitle,
+      rating: normalized.rating,
+      updated_at: now,
+      user_id: user.id,
+    })
+    .select('*')
+    .single<DatabaseReview>();
+
+  if (error) {
+    throw error;
+  }
+  warnIfSlowQuery('create_review_insert', insertStartedAt, {
+    eventId: normalized.eventId,
+    userId: user.id,
+  });
+
+  return toPublicReview(data);
+}
+
+export async function getMyReviews(
+  { supabase, user }: ViewerContext,
+  options: ReviewQueryOptions = {},
+) {
+  const limit = normalizeLimit(options.limit);
+  const queryStartedAt = Date.now();
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+    .returns<DatabaseReview[]>();
+
+  if (error) {
+    throw error;
+  }
+  warnIfSlowQuery('get_my_reviews', queryStartedAt, {
+    limit,
+    userId: user.id,
+  });
+
+  return (data ?? []).map(toPublicReview);
+}
+
+export async function getEventReviews(eventId: string, options: ReviewQueryOptions = {}) {
+  const normalizedEventId = eventId.trim();
+  const limit = normalizeLimit(options.limit);
+
+  if (!normalizedEventId) {
+    throw new Error('eventId is required.');
+  }
+
+  const supabase = createSupabaseForToken(null);
+  const queryStartedAt = Date.now();
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('event_id', normalizedEventId)
+    .eq('status', 'visible')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+    .returns<DatabaseReview[]>();
+
+  if (error) {
+    throw error;
+  }
+  warnIfSlowQuery('get_event_reviews', queryStartedAt, {
+    eventId: normalizedEventId,
+    limit,
+  });
+
+  return (data ?? []).map(toPublicReview);
+}
+
+export async function createReviewReportForViewer(
+  { supabase, user }: ViewerContext,
+  input: {
+    reason: string;
+    reviewId: string;
+  },
+) {
+  const reviewId = input.reviewId.trim();
+  const reason = input.reason.trim();
+
+  if (!reviewId) {
+    throw new Error('reviewId is required.');
+  }
+
+  if (reason.length > 300) {
+    throw new Error('reason must be 300 characters or fewer.');
+  }
+
+  const targetReview = await supabase
+    .from('reviews')
+    .select('id, status')
+    .eq('id', reviewId)
+    .maybeSingle<{ id: string; status: 'visible' | 'hidden' }>();
+
+  if (targetReview.error) {
+    throw targetReview.error;
+  }
+
+  if (!targetReview.data) {
+    throw new Error('해당 후기를 찾을 수 없습니다.');
+  }
+
+  if (targetReview.data.status === 'hidden') {
+    return {
+      alreadyHidden: true,
+      reportCount: REPORT_HIDE_THRESHOLD,
+    };
+  }
+
+  const reportInsert = await supabase
+    .from('review_reports')
+    .insert({
+      review_id: reviewId,
+      reporter_user_id: user.id,
+      reason,
+    })
+    .select('id, review_id, reporter_user_id, reason, created_at')
+    .single<DatabaseReviewReport>();
+
+  if (reportInsert.error) {
+    if (String(reportInsert.error.code) === '23505') {
+      throw new Error('이미 신고한 후기입니다.');
+    }
+    throw reportInsert.error;
+  }
+
+  const countResult = await supabase
+    .from('review_reports')
+    .select('*', { count: 'exact', head: true })
+    .eq('review_id', reviewId);
+
+  if (countResult.error) {
+    throw countResult.error;
+  }
+
+  const reportCount = countResult.count ?? 0;
+  const hideTriggered = reportCount >= REPORT_HIDE_THRESHOLD;
+
+  if (hideTriggered) {
+    const now = new Date().toISOString();
+    const hideResult = await supabase
+      .from('reviews')
+      .update({
+        hidden_at: now,
+        hidden_reason: 'community_reports',
+        status: 'hidden',
+        updated_at: now,
+      })
+      .eq('id', reviewId)
+      .eq('status', 'visible');
+
+    if (hideResult.error) {
+      throw hideResult.error;
+    }
+  }
+
+  return {
+    alreadyHidden: false,
+    hideTriggered,
+    reportCount,
+  };
+}
+
 export function sendMethodNotAllowed(
   response: VercelResponse,
   methods: string[],
@@ -285,7 +512,9 @@ export function parseJsonBody<T>(body: unknown): T {
   return body as T;
 }
 
-function createSupabaseForToken(token: string) {
+function createSupabaseForToken(token: string | null) {
+  const authorization = token ? `Bearer ${token}` : undefined;
+
   return createClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     auth: {
       autoRefreshToken: false,
@@ -293,9 +522,11 @@ function createSupabaseForToken(token: string) {
       persistSession: false,
     },
     global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: authorization
+        ? {
+            Authorization: authorization,
+          }
+        : undefined,
     },
   });
 }
@@ -423,4 +654,111 @@ function toPublicSavedEvent(savedEvent: DatabaseSavedEvent) {
     eventSnapshot: savedEvent.event_snapshot,
     savedAt: savedEvent.saved_at,
   };
+}
+
+function toPublicReview(review: DatabaseReview) {
+  return {
+    comment: review.comment,
+    createdAt: review.created_at,
+    eventId: review.event_id,
+    eventTitle: review.event_title,
+    id: review.id,
+    rating: review.rating,
+    status: review.status,
+    updatedAt: review.updated_at,
+  };
+}
+
+function normalizeReviewInput(input: ReviewInput) {
+  return {
+    comment: String(input.comment ?? '').trim(),
+    eventId: String(input.eventId ?? '').trim(),
+    eventTitle: String(input.eventTitle ?? '').trim(),
+    rating: Number(input.rating),
+  };
+}
+
+function validateReviewInput(input: ReviewInput) {
+  if (!input.eventId) {
+    throw new Error('eventId is required.');
+  }
+
+  if (!input.eventTitle) {
+    throw new Error('eventTitle is required.');
+  }
+
+  if (!Number.isFinite(input.rating) || input.rating < 1 || input.rating > 5) {
+    throw new Error('rating must be between 1 and 5.');
+  }
+
+  if (input.comment.length > REVIEW_COMMENT_MAX_LENGTH) {
+    throw new Error(`comment must be ${REVIEW_COMMENT_MAX_LENGTH} characters or fewer.`);
+  }
+}
+
+async function enforceDuplicateReviewWindow(
+  supabase: SupabaseClient,
+  userId: string,
+  eventId: string,
+  windowMs: number,
+) {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('created_at')
+    .eq('user_id', userId)
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ created_at: string }>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.created_at) {
+    return;
+  }
+
+  const createdAt = new Date(data.created_at).getTime();
+  if (Number.isNaN(createdAt)) {
+    return;
+  }
+
+  if (Date.now() - createdAt < windowMs) {
+    throw new Error('같은 행사에 대한 후기는 잠시 후 다시 작성해 주세요.');
+  }
+}
+
+function normalizeLimit(input: number | undefined) {
+  if (!Number.isFinite(input)) {
+    return REVIEW_DEFAULT_LIMIT;
+  }
+
+  const value = Math.trunc(input as number);
+  if (value < 1) {
+    return 1;
+  }
+
+  if (value > REVIEW_MAX_LIMIT) {
+    return REVIEW_MAX_LIMIT;
+  }
+
+  return value;
+}
+
+function warnIfSlowQuery(event: string, startedAt: number, meta: Record<string, unknown>) {
+  const elapsedMs = Date.now() - startedAt;
+  if (elapsedMs < 250) {
+    return;
+  }
+  console.warn(
+    JSON.stringify({
+      event,
+      level: 'warn',
+      message: 'Slow query detected',
+      elapsedMs,
+      timestamp: new Date().toISOString(),
+      ...meta,
+    }),
+  );
 }
