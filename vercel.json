@@ -7,6 +7,36 @@
       "regions": ["hnd1"]
     }
   },
+  "rewrites": [
+    {
+      "source": "/api/map/search",
+      "destination": "/api/map?action=search"
+    },
+    {
+      "source": "/api/map/geocode",
+      "destination": "/api/map?action=geocode"
+    },
+    {
+      "source": "/api/debug/culture-events",
+      "destination": "/api/debug?target=culture-events"
+    },
+    {
+      "source": "/api/debug/public-data",
+      "destination": "/api/debug?target=public-data"
+    },
+    {
+      "source": "/api/me/recent-searches",
+      "destination": "/api/me/settings?resource=recent-searches"
+    },
+    {
+      "source": "/api/me/preferences",
+      "destination": "/api/me/settings?resource=preferences"
+    },
+    {
+      "source": "/api/me/review-reports",
+      "destination": "/api/me/reviews?resource=reports"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/refresh-libraries",

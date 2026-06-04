@@ -1,9 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { searchKakaoPlaces } from '../_lib/kakaoLocal';
+import { geocodeKakaoQuery, searchKakaoPlaces } from './_lib/kakaoLocal';
 
 const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 60;
 const rateLimitStore = new Map<string, { count: number; windowStartedAt: number }>();
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -13,14 +12,46 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return;
   }
 
-  if (!checkRateLimit(getRateLimitKey(request))) {
+  const action = resolveAction(request);
+  const maxRequests = action === 'geocode' ? 40 : 60;
+
+  if (!checkRateLimit(getRateLimitKey(request), maxRequests)) {
     response.status(429).json({
-      message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+      message:
+        action === 'geocode'
+          ? '지오코딩 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+          : '검색 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
     });
     return;
   }
 
   const query = typeof request.query.query === 'string' ? request.query.query.trim() : '';
+
+  if (action === 'geocode') {
+    if (query.length < 2) {
+      response.status(200).json({
+        coordinate: null,
+        source: 'kakao-local',
+      });
+      return;
+    }
+
+    try {
+      const coordinate = await geocodeKakaoQuery(query);
+      response.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1200');
+      response.status(200).json({
+        coordinate,
+        source: 'kakao-local',
+      });
+    } catch (error) {
+      response.status(500).json({
+        coordinate: null,
+        message:
+          error instanceof Error ? error.message : '카카오 지오코딩 중 오류가 발생했습니다.',
+      });
+    }
+    return;
+  }
 
   if (query.length < 2) {
     response.status(200).json({
@@ -49,7 +80,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 }
 
-function checkRateLimit(key: string) {
+function resolveAction(request: VercelRequest) {
+  const action = typeof request.query.action === 'string' ? request.query.action : '';
+  return action === 'geocode' ? 'geocode' : 'search';
+}
+
+function checkRateLimit(key: string, maxRequests: number) {
   const now = Date.now();
   const entry = rateLimitStore.get(key);
 
@@ -58,7 +94,7 @@ function checkRateLimit(key: string) {
     return true;
   }
 
-  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
+  if (entry.count >= maxRequests) {
     return false;
   }
 

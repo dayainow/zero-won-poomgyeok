@@ -4,6 +4,7 @@ import { withRequestContext } from '../_lib/observability';
 import { enforceRateLimit } from '../_lib/rateLimit';
 import {
   createReviewForViewer,
+  createReviewReportForViewer,
   getMyReviews,
   parseJsonBody,
   requireViewer,
@@ -14,6 +15,11 @@ type CreateReviewBody = {
   eventId?: string;
   eventTitle?: string;
   rating?: number;
+};
+
+type CreateReportBody = {
+  reason?: string;
+  reviewId?: string;
 };
 
 export default async function handler(
@@ -48,6 +54,31 @@ export default async function handler(
       const ip = String(request.headers['x-forwarded-for'] ?? request.socket.remoteAddress ?? 'unknown')
         .split(',')[0]
         .trim();
+      const resource =
+        typeof request.query.resource === 'string' ? request.query.resource : '';
+
+      if (resource === 'reports') {
+        enforceRateLimit({
+          key: `review-report:user:${viewer.user.id}`,
+          limit: 20,
+          windowMs: 60_000,
+        });
+        enforceRateLimit({
+          key: `review-report:ip:${ip}`,
+          limit: 40,
+          windowMs: 60_000,
+        });
+        const body = parseJsonBody<CreateReportBody>(request.body ?? {});
+        const queryAt = Date.now();
+        const result = await createReviewReportForViewer(viewer, {
+          reason: body.reason ?? '',
+          reviewId: body.reviewId ?? '',
+        });
+        obs.mark('db_create_review_report', queryAt);
+        response.status(201).json(result);
+        return;
+      }
+
       enforceRateLimit({
         key: `my-reviews:post-user:${viewer.user.id}`,
         limit: 8,
@@ -113,7 +144,9 @@ function resolveStatus(error: unknown, message: string) {
     message.includes('required') ||
     message.includes('between') ||
     message.includes('fewer') ||
-    message.includes('숫자')
+    message.includes('숫자') ||
+    message.includes('찾을 수 없습니다') ||
+    message.includes('이미 신고')
   ) {
     return 400;
   }
