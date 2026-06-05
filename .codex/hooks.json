@@ -1,0 +1,56 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/dobedub/Documents/source/project/zero-won-poomgyeok/.codex/hooks/guard.sh'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/dobedub/Documents/source/project/zero-won-poomgyeok/.codex/hooks/lint-fix.sh'"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/dobedub/Documents/source/project/zero-won-poomgyeok/.codex/hooks/pre-compact.sh'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/dobedub/Documents/source/project/zero-won-poomgyeok/.codex/hooks/quality-gate.sh'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/dobedub/Documents/source/project/zero-won-poomgyeok/.codex/hooks/quality-gate.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}

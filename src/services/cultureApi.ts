@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import {
   CULTURE_EVENTS,
   MOCK_NOTIFICATIONS,
@@ -242,8 +244,13 @@ function getCultureEventsApiUrl() {
     return eventsApiUrl;
   }
 
-  if (typeof window !== 'undefined') {
+  if (Platform.OS === 'web') {
     return '/api/events';
+  }
+
+  const appUrl = process.env.EXPO_PUBLIC_APP_URL?.replace(/\/$/, '');
+  if (appUrl) {
+    return `${appUrl}/api/events`;
   }
 
   return null;

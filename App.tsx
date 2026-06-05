@@ -1,12 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
   Linking,
   type LayoutChangeEvent,
   Platform,
@@ -31,7 +34,9 @@ import {
   MOCK_USER,
   TRENDING_SEARCHES,
 } from './src/data/events';
-import { NativeMapView, NativeMarker } from './src/components/NativeMap';
+import { AdBanner } from './src/components/AdBanner';
+import { NativeMapView, NativeMarker, NativeMapProvider } from './src/components/NativeMap';
+import { AD_BANNER_HEIGHT, isAdMobEnabled } from './src/services/admob';
 import {
   AuthSessionState,
   getCurrentAuthSession,
@@ -54,11 +59,6 @@ import {
   loadCultureEventsData,
 } from './src/services/cultureApi';
 import type { CultureEventsDataState } from './src/services/cultureApi';
-import {
-  geocodeKakaoQuery,
-  searchKakaoPlaces as searchKakaoPlacesApi,
-} from './src/services/mapApi';
-import type { GeocodeCoordinate, KakaoPlace } from './src/services/mapApi';
 import {
   deleteViewerSavedEvent,
   loadViewerData,
@@ -109,6 +109,7 @@ type OverlayKey =
   | 'itinerary'
   | 'profile'
   | 'settings'
+  | 'guide'
   | 'review';
 type AuthMode = 'signIn' | 'signUp';
 
@@ -121,6 +122,7 @@ const ONBOARDING_KEY = 'zero-won-poomgyeok:onboarded';
 const SAVED_KEY = 'zero-won-poomgyeok:saved-events';
 const RECENT_SEARCH_KEY = 'zero-won-poomgyeok:recent-searches';
 const REVIEWS_KEY = 'zero-won-poomgyeok:user-reviews';
+const AVATAR_KEY = 'zero-won-poomgyeok:avatar-uri';
 const PRIVACY_POLICY_URL =
   process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL ??
   'https://zero-won-poomgyeok.vercel.app/privacy-policy.html';
@@ -149,18 +151,21 @@ const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '�
 const PRICES: CultureFilters['price'][] = ['전체', '무료', '1만원 이하', '1-3만원'];
 const DATES: CultureFilters['date'][] = ['전체', '오늘', '이번 주', '이번 달'];
 
-const TAB_BAR_BODY_HEIGHT = 72;
-const TAB_BAR_TOP_PADDING = 8;
-const TAB_BAR_MIN_BOTTOM_PADDING = 10;
+const TAB_BAR_BODY_HEIGHT = 64;
+const TAB_BAR_TOP_PADDING = 12;
+const TAB_BAR_MIN_BOTTOM_PADDING = 26;
 const TAB_BAR_SCROLL_GAP = 30;
+const DETAIL_BOTTOM_ACTION_HEIGHT = 86;
 
 function useTabBarLayout() {
   const { bottom } = useSafeAreaInsets();
   const tabBarBottomPadding = Math.max(bottom, TAB_BAR_MIN_BOTTOM_PADDING);
   const tabBarHeight = TAB_BAR_BODY_HEIGHT + TAB_BAR_TOP_PADDING + tabBarBottomPadding;
-  const scrollPaddingBottom = tabBarHeight + TAB_BAR_SCROLL_GAP;
+  const adBannerHeight = isAdMobEnabled() ? AD_BANNER_HEIGHT : 0;
+  const scrollPaddingBottom = tabBarHeight + adBannerHeight + TAB_BAR_SCROLL_GAP;
 
   return {
+    adBannerHeight,
     tabBarHeight,
     tabBarStyle: {
       minHeight: TAB_BAR_BODY_HEIGHT + TAB_BAR_TOP_PADDING,
@@ -272,10 +277,6 @@ export default function App() {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [searchPlaces, setSearchPlaces] = useState<KakaoPlace[]>([]);
-  const [searchPlacesLoading, setSearchPlacesLoading] = useState(false);
-  const [searchPlacesError, setSearchPlacesError] = useState('');
   const [authSession, setAuthSession] = useState<AuthSessionState>({
     session: null,
     user: null,
@@ -307,6 +308,7 @@ export default function App() {
   const [detailReviewsLoading, setDetailReviewsLoading] = useState(false);
   const [detailReviewsError, setDetailReviewsError] = useState('');
   const [reviewPinnedEvent, setReviewPinnedEvent] = useState<CultureEvent | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const authConfigured = isSupabaseAuthConfigured();
   const currentUser = authSession.user;
   const isSignedIn = Boolean(currentUser);
@@ -317,11 +319,12 @@ export default function App() {
     let mounted = true;
 
     async function restore() {
-      const [onboarded, saved, recent, reviews] = await Promise.all([
+      const [onboarded, saved, recent, reviews, avatar] = await Promise.all([
         AsyncStorage.getItem(ONBOARDING_KEY),
         AsyncStorage.getItem(SAVED_KEY),
         AsyncStorage.getItem(RECENT_SEARCH_KEY),
         AsyncStorage.getItem(REVIEWS_KEY),
+        AsyncStorage.getItem(AVATAR_KEY),
       ]);
 
       if (!mounted) {
@@ -333,6 +336,7 @@ export default function App() {
       setRecentSearches(recent ? JSON.parse(recent) : ['전시', '무료공연', '이번 주말']);
       const parsedReviews = reviews ? JSON.parse(reviews) : [];
       setLegacyReviewCount(Array.isArray(parsedReviews) ? parsedReviews.length : 0);
+      setAvatarUri(avatar ?? null);
       setBooting(false);
     }
 
@@ -499,57 +503,6 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 350);
-
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [searchQuery]);
-
-  useEffect(() => {
-    const normalized = debouncedSearchQuery.trim();
-
-    if (overlay !== 'search' || normalized.length < 2) {
-      setSearchPlaces([]);
-      setSearchPlacesError('');
-      setSearchPlacesLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setSearchPlacesLoading(true);
-    setSearchPlacesError('');
-
-    searchKakaoPlacesApi(normalized)
-      .then((places) => {
-        if (!cancelled) {
-          setSearchPlaces(places);
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setSearchPlaces([]);
-          setSearchPlacesError(
-            error instanceof Error
-              ? error.message
-              : '카카오 장소 검색 중 문제가 발생했습니다.',
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setSearchPlacesLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedSearchQuery, overlay]);
-
   const activeFilters = useMemo(
     () => ({
       ...filters,
@@ -579,10 +532,15 @@ export default function App() {
   const visibleSavedIds = isSignedIn ? viewerData?.savedEventIds ?? savedIds : [];
   const reviewCount = isSignedIn ? myReviews.length : legacyReviewCount;
 
-  const reviewEventOptions = useMemo(
-    () => nearbyEvents.slice(0, 5).map(({ distanceKm, ...event }) => event),
-    [nearbyEvents],
-  );
+  const reviewEventOptions = useMemo(() => {
+    const nearby = nearbyEvents.slice(0, 5).map(({ distanceKm, ...event }) => event);
+
+    if (nearby.length > 0) {
+      return nearby;
+    }
+
+    return cultureEvents.slice(0, 8);
+  }, [cultureEvents, nearbyEvents]);
 
   const savedEvents = useMemo(
     () => cultureEvents.filter((event) => visibleSavedIds.includes(event.id)),
@@ -715,19 +673,26 @@ export default function App() {
       } else {
         await saveViewerEvent(event);
       }
-
-      const nextViewerData = await loadViewerData();
-      setViewerData(nextViewerData);
-      setSavedIds(nextViewerData.savedEventIds);
     } catch (error) {
+      // 서버 쓰기 자체가 실패한 경우에만 되돌린다.
       setViewerData(previousViewerData);
       setSavedIds(previousSavedIds);
       Alert.alert(
-        '저장 동기화 실패',
+        '저장 실패',
         error instanceof Error
           ? error.message
-          : '저장함을 서버에 반영하지 못했습니다.',
+          : '저장함을 서버에 반영하지 못했어요. 잠시 후 다시 시도해 주세요.',
       );
+      return;
+    }
+
+    // 쓰기는 성공. 최신 목록 재조회는 실패해도 낙관적 상태를 유지한다.
+    try {
+      const nextViewerData = await loadViewerData();
+      setViewerData(nextViewerData);
+      setSavedIds(nextViewerData.savedEventIds);
+    } catch {
+      // 네트워크 일시 오류 등은 무시 (다음 진입 시 동기화됨)
     }
   }
 
@@ -742,15 +707,24 @@ export default function App() {
     setSelectedEvent(null);
   }
 
+  function openReviewForEvent(event: CultureEvent) {
+    setReviewPinnedEvent(event);
+    setOverlay('review');
+  }
+
   function openFabPress() {
+    if (selectedEvent) {
+      openReviewForEvent(selectedEvent);
+      return;
+    }
+
     if (activeTab === 'map') {
       if (!selectedMapEvent) {
         Alert.alert('후기', '지도에 표시된 장소가 없어요.');
         return;
       }
 
-      setReviewPinnedEvent(selectedMapEvent);
-      setOverlay('review');
+      openReviewForEvent(selectedMapEvent);
       return;
     }
 
@@ -830,7 +804,7 @@ export default function App() {
   }) {
     if (!isSignedIn) {
       openAuthGate('signIn');
-      throw new Error('로그인 후 후기를 남길 수 있어요.');
+      return;
     }
 
     try {
@@ -945,10 +919,7 @@ export default function App() {
     setOverlay('filter');
   }
 
-  async function submitSearch(
-    nextQuery = searchQuery,
-    geocodeHint?: GeocodeCoordinate | null,
-  ) {
+  async function submitSearch(nextQuery = searchQuery) {
     const normalized = nextQuery.trim();
 
     if (normalized.length < 2) {
@@ -960,26 +931,6 @@ export default function App() {
       normalized,
       ...current.filter((item) => item !== normalized),
     ].slice(0, 5));
-
-    try {
-      const coordinate = geocodeHint ?? (await geocodeKakaoQuery(normalized));
-
-      if (coordinate) {
-        setLocation({
-          latitude: coordinate.latitude,
-          longitude: coordinate.longitude,
-        });
-        const label = coordinate.roadAddressName || coordinate.addressName;
-        setLocationLabel(`${label} 기준`);
-        setLocationMessage('카카오 로컬 지오코딩 기준으로 주변 문화행사를 다시 정렬했어요.');
-      }
-    } catch (error) {
-      setLocationMessage(
-        error instanceof Error
-          ? `지오코딩 실패: ${error.message}`
-          : '지오코딩에 실패해 기존 위치 기준으로 표시합니다.',
-      );
-    }
 
     if (isSignedIn) {
       try {
@@ -1001,6 +952,7 @@ export default function App() {
   }
 
   async function handleProfileSave(input: {
+    avatarUri: string | null;
     district: string;
     interests: string[];
     marketingConsent: boolean;
@@ -1015,9 +967,18 @@ export default function App() {
     setViewerError('');
 
     try {
-      const nextViewerData = await updateViewerProfile(input);
+      const { avatarUri: nextAvatarUri, ...profileInput } = input;
+      const nextViewerData = await updateViewerProfile(profileInput);
       setViewerData(nextViewerData);
       setMarketingEnabled(nextViewerData.profile.marketingConsent);
+
+      setAvatarUri(nextAvatarUri);
+      if (nextAvatarUri) {
+        await AsyncStorage.setItem(AVATAR_KEY, nextAvatarUri);
+      } else {
+        await AsyncStorage.removeItem(AVATAR_KEY);
+      }
+
       setOverlay(null);
     } catch (error) {
       setViewerError(
@@ -1181,6 +1142,7 @@ export default function App() {
             onReservation={openReservation}
             onRetryReviews={() => fetchDetailReviews(selectedEvent.id)}
             onToggleSaved={toggleSaved}
+            onWriteReview={() => openReviewForEvent(selectedEvent)}
             recentReviews={detailReviews}
             reviewsError={detailReviewsError}
             reviewsLoading={detailReviewsLoading}
@@ -1194,6 +1156,7 @@ export default function App() {
                 events={nearbyEvents}
                 featured={featured}
                 filters={filters}
+                interests={isSignedIn ? viewerProfile?.interests ?? [] : []}
                 locationLabel={locationLabel}
                 locationLoading={locationLoading}
                 locationMessage={locationMessage}
@@ -1238,8 +1201,10 @@ export default function App() {
             {activeTab === 'my' ? (
               <MyScreen
                 authConfigured={authConfigured}
+                avatarUri={avatarUri}
                 isSignedIn={isSignedIn}
                 onAuthPress={() => openAuthGate('signIn')}
+                onGuidePress={() => setOverlay('guide')}
                 onItineraryPress={() => setOverlay('itinerary')}
                 onNotificationsPress={() => setOverlay('notifications')}
                 onProfilePress={() => setOverlay('profile')}
@@ -1253,6 +1218,7 @@ export default function App() {
               />
             ) : null}
 
+            <AdBanner />
             <BottomTabBar activeTab={activeTab} onFabPress={openFabPress} onTabPress={openTab} />
           </>
         )}
@@ -1261,24 +1227,12 @@ export default function App() {
           <SearchScreen
             onCancel={() => setOverlay(null)}
             onEventPress={openEvent}
-            onPlacePick={(place) => {
-              setSearchQuery(place.placeName);
-              submitSearch(place.placeName, {
-                addressName: place.addressName,
-                latitude: place.latitude,
-                longitude: place.longitude,
-                roadAddressName: place.roadAddressName,
-              });
-            }}
             onRecentClear={() => setRecentSearches([])}
             onRecentPick={(query) => {
               setSearchQuery(query);
               submitSearch(query);
             }}
             onSubmit={submitSearch}
-            places={searchPlaces}
-            placesError={searchPlacesError}
-            placesLoading={searchPlacesLoading}
             query={searchQuery}
             recentSearches={recentSearches}
             results={searchResults}
@@ -1341,14 +1295,22 @@ export default function App() {
         ) : null}
 
         {overlay === 'itinerary' ? (
-          <ItineraryScreen
-            events={savedEvents}
+          <MyCultureScreen
             onBack={() => setOverlay(null)}
             onBrowse={() => {
               setOverlay(null);
               openTab('feed');
             }}
-            onEventPress={openEvent}
+            onOpenEvent={(eventId) => {
+              const event = cultureEvents.find((item) => item.id === eventId);
+
+              if (event) {
+                openEvent(event);
+              } else {
+                setOverlay(null);
+              }
+            }}
+            reviews={myReviews}
           />
         ) : null}
 
@@ -1363,6 +1325,7 @@ export default function App() {
             onBack={() => setOverlay(null)}
             onDefaultRegionChange={handleDefaultRegionChange}
             onEventPushEnabledChange={handleEventPushEnabledChange}
+            onManageInterests={() => setOverlay(isSignedIn ? 'profile' : 'auth')}
             onMarketingEnabledChange={handleMarketingEnabledChange}
             onPushEnabledChange={handlePushEnabledChange}
             onRadiusChange={handleRadiusChange}
@@ -1378,6 +1341,7 @@ export default function App() {
 
         {overlay === 'profile' ? (
           <ProfileScreen
+            defaultAvatarUri={avatarUri}
             defaultDistrict={viewerProfile?.district ?? '서울'}
             defaultInterests={viewerProfile?.interests ?? MOCK_USER.interests}
             defaultMarketingConsent={
@@ -1389,6 +1353,10 @@ export default function App() {
             onBack={() => setOverlay(null)}
             onSubmit={handleProfileSave}
           />
+        ) : null}
+
+        {overlay === 'guide' ? (
+          <GuideScreen onBack={() => setOverlay(null)} />
         ) : null}
 
         {overlay === 'review' ? (
@@ -1453,9 +1421,11 @@ function OnboardingScreen({
     },
   ];
   const current = contents[step];
+  const insets = useSafeAreaInsets();
+  const footerBottomPadding = Math.max(insets.bottom, 16) + 20;
 
   return (
-    <SafeAreaView style={styles.onboarding}>
+    <SafeAreaOverlay edges={['left', 'right', 'top']} style={styles.onboarding}>
       <StatusBar style="light" />
       <Pressable accessibilityRole="button" onPress={onSkip} style={styles.skipButton}>
         <Text style={styles.skipText}>건너뛰기</Text>
@@ -1475,7 +1445,7 @@ function OnboardingScreen({
           </View>
         ) : null}
       </View>
-      <View style={styles.onboardingFooter}>
+      <View style={[styles.onboardingFooter, { paddingBottom: footerBottomPadding }]}>
         <View style={styles.dots}>
           {[0, 1, 2].map((item) => (
             <View
@@ -1488,7 +1458,7 @@ function OnboardingScreen({
           <Text style={styles.nextFabText}>{step === 2 ? '시작' : '>'}</Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </SafeAreaOverlay>
   );
 }
 
@@ -1498,6 +1468,7 @@ function FeedScreen({
   events,
   featured,
   filters,
+  interests,
   locationLabel,
   locationLoading,
   locationMessage,
@@ -1517,6 +1488,7 @@ function FeedScreen({
   events: Array<CultureEvent & { distanceKm?: number }>;
   featured: CultureEvent & { distanceKm?: number };
   filters: CultureFilters;
+  interests: string[];
   locationLabel: string;
   locationLoading: boolean;
   locationMessage: string;
@@ -1532,6 +1504,13 @@ function FeedScreen({
   stats: { free: number; cheap: number; weekend: number };
 }) {
   const { scrollPaddingBottom } = useTabBarLayout();
+  const interestEvents = useMemo(
+    () =>
+      interests.length > 0
+        ? events.filter((event) => interests.includes(event.category))
+        : [],
+    [events, interests],
+  );
 
   return (
     <ScrollView
@@ -1542,8 +1521,8 @@ function FeedScreen({
         <View style={styles.headerTopRow}>
           <BrandTitle />
           <View style={styles.headerActions}>
-            <IconButton label="검색" onPress={onSearchPress} symbol="S" />
-            <IconButton label="알림" onPress={onNotificationsPress} symbol="B" />
+            <IconButton label="검색" onPress={onSearchPress} icon="search-outline" />
+            <IconButton label="알림" onPress={onNotificationsPress} icon="notifications-outline" />
           </View>
         </View>
         <Text style={styles.feedSubtitle}>지금 무료로 즐길 수 있는 문화생활을 추천해요.</Text>
@@ -1586,6 +1565,23 @@ function FeedScreen({
         selected={selectedCategory}
         onSelect={onCategoryChange}
       />
+
+      {selectedCategory === '전체' && interestEvents.length > 0 ? (
+        <>
+          <SectionHeader title="내 관심 카테고리 추천" />
+          <View style={styles.nearbyGrid}>
+            {interestEvents.slice(0, 6).map((event) => (
+              <NearbyCard
+                event={event}
+                isSaved={savedIds.includes(event.id)}
+                key={`interest-${event.id}`}
+                onPress={() => onEventPress(event)}
+                onToggleSaved={onToggleSaved}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
 
       <SectionHeader
         actionLabel="필터"
@@ -1648,6 +1644,7 @@ function DetailScreen({
   onReservation,
   onRetryReviews,
   onToggleSaved,
+  onWriteReview,
   recentReviews,
   reviewsError,
   reviewsLoading,
@@ -1660,24 +1657,38 @@ function DetailScreen({
   onReservation: (event: CultureEvent) => void;
   onRetryReviews: () => void;
   onToggleSaved: (eventId: string) => void;
+  onWriteReview: () => void;
   recentReviews: ReviewItem[];
   reviewsError: string;
   reviewsLoading: boolean;
 }) {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 12);
+
   return (
     <View style={styles.detailShell}>
-      <ScrollView contentContainerStyle={styles.detailContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.detailContent,
+          { paddingBottom: DETAIL_BOTTOM_ACTION_HEIGHT + bottomInset + 16 },
+        ]}
+      >
         <View style={styles.heroImageWrap}>
           <Image source={{ uri: event.images[0] }} style={styles.heroImage} />
           <View style={styles.detailTopBar}>
-            <IconButton dark label="뒤로" onPress={onBack} symbol="<" />
+            <IconButton dark label="뒤로" onPress={onBack} icon="chevron-back" />
             <View style={styles.detailTopActions}>
-              <IconButton dark label="공유" onPress={() => Alert.alert('공유', '공유 기능은 MVP 후속 범위입니다.')} symbol="SH" />
+              <IconButton
+                dark
+                label="공유"
+                onPress={() => Alert.alert('공유', '공유 기능은 MVP 후속 범위입니다.')}
+                icon="share-social-outline"
+              />
               <IconButton
                 dark
                 label={isSaved ? '저장 해제' : '저장'}
                 onPress={() => onToggleSaved(event.id)}
-                symbol={isSaved ? '★' : '☆'}
+                icon={isSaved ? 'bookmark' : 'bookmark-outline'}
               />
             </View>
           </View>
@@ -1704,7 +1715,16 @@ function DetailScreen({
 
           <Text style={styles.detailDescription}>{event.description}</Text>
           <View style={styles.detailReviewSection}>
-            <Text style={styles.detailReviewTitle}>최근 후기</Text>
+            <View style={styles.detailReviewTitleRow}>
+              <Text style={styles.detailReviewTitle}>최근 후기</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onWriteReview}
+                style={styles.outlineSmallButton}
+              >
+                <Text style={styles.outlineSmallButtonText}>후기 남기기</Text>
+              </Pressable>
+            </View>
             {reviewsLoading ? (
               <View style={styles.detailReviewLoadingRow}>
                 <ActivityIndicator color={colors.accent} size="small" />
@@ -1724,11 +1744,15 @@ function DetailScreen({
               </View>
             ) : null}
             {!reviewsLoading && !reviewsError && recentReviews.length === 0 ? (
-              <View style={styles.detailReviewMessageCard}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onWriteReview}
+                style={styles.detailReviewMessageCard}
+              >
                 <Text style={styles.detailReviewMetaText}>
-                  아직 등록된 후기가 없어요. 첫 후기를 남겨보세요.
+                  아직 등록된 후기가 없어요. 탭해서 첫 후기를 남겨보세요.
                 </Text>
-              </View>
+              </Pressable>
             ) : null}
             {!reviewsLoading && !reviewsError && recentReviews.length > 0
               ? recentReviews.slice(0, 3).map((review) => (
@@ -1786,7 +1810,7 @@ function DetailScreen({
         </View>
       </ScrollView>
 
-      <View style={styles.bottomActions}>
+      <View style={[styles.bottomActions, { paddingBottom: 16 + bottomInset }]}>
         <Pressable
           accessibilityRole="button"
           onPress={() => onToggleSaved(event.id)}
@@ -1846,6 +1870,7 @@ function DetailMapPreview({ event }: { event: CultureEvent & { distanceKm?: numb
           customMapStyle={DARK_MAP_STYLE}
           initialRegion={mapRegion}
           mapType="standard"
+          provider={NativeMapProvider}
           pitchEnabled={false}
           rotateEnabled={false}
           scrollEnabled={false}
@@ -1919,7 +1944,7 @@ function MapScreen({
   const MarkerComponent = NativeMarker;
   const [webMapSize, setWebMapSize] = useState({ height: 0, width: 0 });
   const mapCanvasSize = getMapCanvasSize(webMapSize);
-  const { tabBarHeight } = useTabBarLayout();
+  const { tabBarHeight, adBannerHeight } = useTabBarLayout();
 
   const handleMapLayout = useCallback((event: LayoutChangeEvent) => {
     const { height, width } = event.nativeEvent.layout;
@@ -1941,6 +1966,7 @@ function MapScreen({
             customMapStyle={DARK_MAP_STYLE}
             initialRegion={mapRegion}
             mapType="standard"
+            provider={NativeMapProvider}
             showsCompass={false}
             showsMyLocationButton={false}
             showsUserLocation
@@ -1979,13 +2005,15 @@ function MapScreen({
             size={mapCanvasSize}
           />
         ) : mapEvents.length > 0 ? (
-          <WebTileMap
-            events={mapEvents}
-            mapRegion={mapRegion}
-            onSelectEvent={onSelectEvent}
-            selectedEvent={selectedEvent}
-            size={mapCanvasSize}
-          />
+          <View style={styles.mapTileSurface}>
+            <WebTileMap
+              events={mapEvents}
+              mapRegion={mapRegion}
+              onSelectEvent={onSelectEvent}
+              selectedEvent={selectedEvent}
+              size={mapCanvasSize}
+            />
+          </View>
         ) : (
           <>
             <View style={styles.mapGridLineOne} />
@@ -2016,13 +2044,15 @@ function MapScreen({
         <Pressable accessibilityRole="button" onPress={onSearchPress} style={styles.mapSearchBar}>
           <Text style={styles.mapSearchPlaceholder}>지역, 장소, 키워드 검색</Text>
         </Pressable>
-        <CategoryRow compact selected={selectedCategory} onSelect={onCategoryChange} />
+        <View style={styles.mapCategorySpacer}>
+          <CategoryRow compact selected={selectedCategory} onSelect={onCategoryChange} />
+        </View>
       </View>
 
       <Pressable
         accessibilityRole="button"
         onPress={() => onEventPress(selectedEvent)}
-        style={[styles.mapBottomCard, { bottom: tabBarHeight + 20 }]}
+        style={[styles.mapBottomCard, { bottom: tabBarHeight + adBannerHeight + 20 }]}
       >
         <Image source={{ uri: selectedEvent.thumbnail }} style={styles.mapBottomImage} />
         <View style={styles.mapBottomInfo}>
@@ -2557,7 +2587,7 @@ function WebTileMap({
   const tiles = createWebMapTiles(left, top, size, zoom);
 
   return (
-    <View style={styles.webTileMap}>
+    <View style={[styles.webTileMap, compact && styles.webTileMapCompact]}>
       {tiles.map((tile) => (
         <Image
           key={`${tile.zoom}-${tile.x}-${tile.y}`}
@@ -2668,6 +2698,14 @@ function getReviewSubmitErrorMessage(error: unknown): string {
     return '요청이 너무 빨라요. 잠시 후 다시 시도해 주세요.';
   }
 
+  if (/network request failed/i.test(message)) {
+    return '서버에 연결하지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.';
+  }
+
+  if (/EXPO_PUBLIC_APP_URL/.test(message)) {
+    return '앱 서버 주소가 설정되지 않았어요. 최신 버전으로 업데이트해 주세요.';
+  }
+
   return message;
 }
 
@@ -2676,7 +2714,19 @@ function hasValidEventCoordinate(event: CultureEvent): boolean {
 }
 
 function shouldUseNativeMap(): boolean {
-  return Platform.OS === 'ios' && NativeMapView !== null && NativeMarker !== null;
+  if (!NativeMapView || !NativeMarker) {
+    return false;
+  }
+
+  if (Platform.OS === 'ios') {
+    return true;
+  }
+
+  if (Platform.OS === 'android') {
+    return Boolean(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim());
+  }
+
+  return false;
 }
 
 function getMapCanvasSize(measured: { height: number; width: number }): {
@@ -2781,19 +2831,15 @@ function getWebMapZoom(longitudeDelta: number): number {
 }
 
 function getWebTileUrl(zoom: number, x: number, y: number): string {
-  return `https://a.basemaps.cartocdn.com/dark_all/${zoom}/${x}/${y}.png`;
+  return `https://a.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${x}/${y}.png`;
 }
 
 function SearchScreen({
   onCancel,
   onEventPress,
-  onPlacePick,
   onRecentClear,
   onRecentPick,
   onSubmit,
-  places,
-  placesError,
-  placesLoading,
   query,
   recentSearches,
   results,
@@ -2801,13 +2847,9 @@ function SearchScreen({
 }: {
   onCancel: () => void;
   onEventPress: (event: CultureEvent) => void;
-  onPlacePick: (place: KakaoPlace) => void;
   onRecentClear: () => void;
   onRecentPick: (query: string) => void;
   onSubmit: () => void;
-  places: KakaoPlace[];
-  placesError: string;
-  placesLoading: boolean;
   query: string;
   recentSearches: string[];
   results: Array<CultureEvent & { distanceKm?: number }>;
@@ -2868,36 +2910,9 @@ function SearchScreen({
             </>
           ) : (
             <>
-              <SectionHeader title="카카오 장소 추천" />
-              {placesLoading ? (
-                <View style={styles.searchPlaceLoading}>
-                  <ActivityIndicator color={colors.accent} size="small" />
-                  <Text style={styles.searchPlaceLoadingText}>장소 검색 중...</Text>
-                </View>
-              ) : null}
-              {!placesLoading && placesError ? (
-                <Text style={styles.searchPlaceErrorText}>{placesError}</Text>
-              ) : null}
-              {!placesLoading && places.length > 0 ? (
-                <View style={styles.searchPlaceList}>
-                  {places.map((place) => (
-                    <Pressable
-                      accessibilityRole="button"
-                      key={place.id}
-                      onPress={() => onPlacePick(place)}
-                      style={styles.searchPlaceItem}
-                    >
-                      <Text numberOfLines={1} style={styles.searchPlaceTitle}>{place.placeName}</Text>
-                      <Text numberOfLines={1} style={styles.searchPlaceMeta}>
-                        {place.roadAddressName || place.addressName}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
               {results.length > 0 ? (
                 <>
-                  <SectionHeader title="앱 내 문화행사 결과" />
+                  <SectionHeader title="검색 결과" />
                   <View style={styles.resultList}>
                     {results.map((event) => (
                       <ListEventCard
@@ -2908,13 +2923,12 @@ function SearchScreen({
                     ))}
                   </View>
                 </>
-              ) : null}
-              {!placesLoading && places.length === 0 && results.length === 0 ? (
+              ) : (
                 <EmptyState
                   description="다른 키워드나 더 넓은 필터로 다시 검색해보세요."
                   title="검색 결과가 없어요"
                 />
-              ) : null}
+              )}
             </>
           )}
         </ScrollView>
@@ -3022,12 +3036,24 @@ function AuthScreen({
   const isSignIn = mode === 'signIn';
   const canSubmit = email.trim().includes('@') && password.length >= 6 && !loading;
   const canUseKakao = authConfigured && kakaoConfigured;
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.overlay}>
-      <OverlaySafeArea>
-        <TopBar onBack={onBack} showClose title="시작하기" />
-        <ScrollView contentContainerStyle={styles.authContent}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+        style={styles.overlayKeyboard}
+      >
+        <OverlaySafeArea>
+          <TopBar onBack={onBack} showClose title="시작하기" />
+          <ScrollView
+            contentContainerStyle={[
+              styles.authContent,
+              { paddingBottom: Math.max(insets.bottom, 16) + 32 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.authCard}>
             <BrandTitle />
             <Text style={styles.authTitle}>3초 만에 시작하기</Text>
@@ -3124,13 +3150,15 @@ function AuthScreen({
               </>
             ) : null}
           </View>
-        </ScrollView>
-      </OverlaySafeArea>
+          </ScrollView>
+        </OverlaySafeArea>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 function ProfileScreen({
+  defaultAvatarUri,
   defaultDistrict,
   defaultInterests,
   defaultMarketingConsent,
@@ -3140,6 +3168,7 @@ function ProfileScreen({
   onBack,
   onSubmit,
 }: {
+  defaultAvatarUri: string | null;
   defaultDistrict: string;
   defaultInterests: string[];
   defaultMarketingConsent: boolean;
@@ -3148,16 +3177,19 @@ function ProfileScreen({
   loading: boolean;
   onBack: () => void;
   onSubmit: (input: {
+    avatarUri: string | null;
     district: string;
     interests: string[];
     marketingConsent: boolean;
     nickname: string;
   }) => void;
 }) {
+  const { bottom } = useSafeAreaInsets();
   const [nickname, setNickname] = useState(defaultNickname);
   const [district, setDistrict] = useState(defaultDistrict);
   const [interests, setInterests] = useState<string[]>(defaultInterests);
   const [marketingConsent, setMarketingConsent] = useState(defaultMarketingConsent);
+  const [avatarUri, setAvatarUri] = useState<string | null>(defaultAvatarUri);
   const interestOptions = CATEGORIES.filter((category) => category !== '전체');
   const canSubmit = nickname.trim().length >= 2 && !loading;
 
@@ -3169,11 +3201,61 @@ function ProfileScreen({
     );
   }
 
+  async function pickAvatar() {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert('사진 권한 필요', '프로필 사진을 바꾸려면 설정에서 사진 접근을 허용해 주세요.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        mediaTypes: ['images'],
+        quality: 0.6,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setAvatarUri(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert('사진 불러오기 실패', '이미지를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
+  }
+
   return (
     <View style={styles.overlay}>
       <OverlaySafeArea>
         <TopBar onBack={onBack} title="프로필 편집" />
-        <ScrollView contentContainerStyle={styles.filterContent}>
+        <ScrollView contentContainerStyle={[styles.filterContent, { paddingBottom: 120 }]}>
+          <View style={styles.profilePhotoSection}>
+            <Pressable
+              accessibilityLabel="프로필 사진 변경"
+              accessibilityRole="button"
+              onPress={pickAvatar}
+              style={styles.profilePhotoAvatar}
+            >
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.profilePhotoImage} />
+              ) : (
+                <Ionicons color={colors.textSecondary} name="person" size={36} />
+              )}
+              <View style={styles.profilePhotoBadge}>
+                <Ionicons color={colors.onAccent} name="camera" size={14} />
+              </View>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={pickAvatar}>
+              <Text style={styles.profilePhotoAction}>사진 변경</Text>
+            </Pressable>
+            {avatarUri ? (
+              <Pressable accessibilityRole="button" onPress={() => setAvatarUri(null)}>
+                <Text style={styles.profilePhotoRemove}>사진 삭제</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
           <FilterSection title="기본 정보">
             <TextInput
               onChangeText={setNickname}
@@ -3214,12 +3296,13 @@ function ProfileScreen({
 
           {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
         </ScrollView>
-        <View style={styles.filterBottom}>
+        <View style={[styles.filterBottom, { paddingBottom: 16 + bottom }]}>
           <Pressable
             accessibilityRole="button"
             disabled={!canSubmit}
             onPress={() =>
               onSubmit({
+                avatarUri,
                 district,
                 interests,
                 marketingConsent,
@@ -3235,6 +3318,75 @@ function ProfileScreen({
             )}
           </Pressable>
         </View>
+      </OverlaySafeArea>
+    </View>
+  );
+}
+
+const GUIDE_STEPS: Array<{ icon: IoniconsName; title: string; body: string }> = [
+  {
+    icon: 'home-outline',
+    title: '피드에서 발견하기',
+    body: '내 위치 주변의 무료·저렴한 전시, 공연, 클래스, 행사를 거리순으로 추천해 드려요. 카테고리 칩으로 원하는 종류만 골라볼 수 있어요.',
+  },
+  {
+    icon: 'map-outline',
+    title: '지도로 둘러보기',
+    body: '지도 탭에서 주변 장소를 한눈에 확인하세요. 핀을 누르면 하단 카드에서 거리·운영시간·카테고리를 바로 볼 수 있어요.',
+  },
+  {
+    icon: 'bookmark-outline',
+    title: '저장하고 다시 보기',
+    body: '관심 있는 곳은 저장하면 저장함에서 모아볼 수 있어요. 로그인하면 여러 기기에서 저장함이 함께 동기화돼요.',
+  },
+  {
+    icon: 'create-outline',
+    title: '후기 남기기',
+    body: '가운데 글쓰기 버튼이나 상세 화면의 “후기 남기기”로 별점과 한 줄 후기를 남길 수 있어요. 다른 사람에게 큰 도움이 돼요.',
+  },
+  {
+    icon: 'person-outline',
+    title: '내 취향 맞추기',
+    body: '마이 → 프로필 편집에서 닉네임·기본 지역·관심 카테고리·프로필 사진을 설정하면 더 잘 맞는 추천을 받을 수 있어요.',
+  },
+];
+
+function GuideScreen({ onBack }: { onBack: () => void }) {
+  return (
+    <View style={styles.overlay}>
+      <OverlaySafeArea>
+        <TopBar onBack={onBack} showClose title="이용 안내" />
+        <ScrollView contentContainerStyle={styles.guideContent}>
+          <Text style={styles.guideHeroTitle}>0원으로 즐기는 문화생활</Text>
+          <Text style={styles.guideHeroText}>
+            0원의품격은 무료이거나 저렴한 전시·공연·클래스·행사·문화공간을 가까운 곳에서
+            찾아주는 앱이에요. 아래 5단계만 알면 충분해요.
+          </Text>
+
+          {GUIDE_STEPS.map((step, index) => (
+            <View key={step.title} style={styles.guideStep}>
+              <View style={styles.guideStepIcon}>
+                <Ionicons color={colors.accent} name={step.icon} size={20} />
+              </View>
+              <View style={styles.guideStepBody}>
+                <Text style={styles.guideStepTitle}>
+                  {index + 1}. {step.title}
+                </Text>
+                <Text style={styles.guideStepText}>{step.body}</Text>
+              </View>
+            </View>
+          ))}
+
+          <View style={styles.guideTipBox}>
+            <Text style={styles.guideTipTitle}>알아두면 좋아요</Text>
+            <Text style={styles.guideTipText}>
+              · 표시되는 정보는 공공데이터를 기반으로 하며 실제 운영과 다를 수 있어요. 방문 전
+              공식 채널에서 한 번 더 확인해 주세요.{'\n'}
+              · 위치 권한을 허용하면 더 정확한 주변 추천을 받을 수 있어요.{'\n'}
+              · 문의나 제안은 마이 → 문의하기로 보내주시면 빠르게 반영할게요.
+            </Text>
+          </View>
+        </ScrollView>
       </OverlaySafeArea>
     </View>
   );
@@ -3306,8 +3458,10 @@ function SavedScreen({
 
 function MyScreen({
   authConfigured,
+  avatarUri,
   isSignedIn,
   onAuthPress,
+  onGuidePress,
   onItineraryPress,
   onNotificationsPress,
   onProfilePress,
@@ -3320,8 +3474,10 @@ function MyScreen({
   viewerLoading,
 }: {
   authConfigured: boolean;
+  avatarUri: string | null;
   isSignedIn: boolean;
   onAuthPress: () => void;
+  onGuidePress: () => void;
   onItineraryPress: () => void;
   onNotificationsPress: () => void;
   onProfilePress: () => void;
@@ -3342,14 +3498,18 @@ function MyScreen({
       <View style={styles.simpleHeader}>
         <Text style={styles.screenTitle}>마이</Text>
         <View style={styles.headerActions}>
-          <IconButton label="알림" onPress={onNotificationsPress} symbol="B" />
-          <IconButton label="설정" onPress={onSettingsPress} symbol="G" />
+          <IconButton label="알림" onPress={onNotificationsPress} icon="notifications-outline" />
+          <IconButton label="설정" onPress={onSettingsPress} icon="settings-outline" />
         </View>
       </View>
 
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{isSignedIn ? 'U' : '0'}</Text>
+          {isSignedIn && avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>{isSignedIn ? 'U' : '0'}</Text>
+          )}
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>
@@ -3395,61 +3555,86 @@ function MyScreen({
       </View>
 
       <View style={styles.menuList}>
-        <MenuRow label="나의 일정" onPress={onItineraryPress} />
-        <MenuRow label="최근 본 콘텐츠" onPress={() => Alert.alert('준비 중', '최근 본 콘텐츠는 다음 단계에서 연결합니다.')} />
+        <MenuRow label="나의 문화생활" onPress={onItineraryPress} />
         <MenuRow label="알림" onPress={onNotificationsPress} />
-        <MenuRow label="이용 안내" onPress={() => Alert.alert('이용 안내', '무료 문화생활을 더 가까이 발견하는 앱입니다.')} />
+        <MenuRow label="이용 안내" onPress={onGuidePress} />
         <MenuRow label="문의하기" onPress={() => openExternalUrl(`mailto:${SUPPORT_EMAIL}`)} />
       </View>
     </ScrollView>
   );
 }
 
-function ItineraryScreen({
-  events,
+function formatVisitDate(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function MyCultureScreen({
   onBack,
   onBrowse,
-  onEventPress,
+  onOpenEvent,
+  reviews,
 }: {
-  events: CultureEvent[];
   onBack: () => void;
   onBrowse: () => void;
-  onEventPress: (event: CultureEvent) => void;
+  onOpenEvent: (eventId: string) => void;
+  reviews: ReviewItem[];
 }) {
   return (
     <View style={styles.overlay}>
       <OverlaySafeArea>
-        <TopBar onBack={onBack} title="나의 일정" />
+        <TopBar onBack={onBack} title="나의 문화생활" />
         <ScrollView contentContainerStyle={styles.overlayContent}>
-          <View style={styles.segmentRow}>
-            <Text style={styles.segmentActive}>예정 ({events.length})</Text>
-            <Text style={styles.segmentInactive}>지난 일정</Text>
-          </View>
-          {events.length > 0 ? (
-            <View style={styles.itineraryList}>
-              <Text style={styles.groupLabel}>다가오는 일정</Text>
-              {events.slice(0, 5).map((event) => (
-                <Pressable
-                  accessibilityRole="button"
-                  key={event.id}
-                  onPress={() => onEventPress(event)}
-                  style={styles.itineraryRow}
-                >
-                  <Text style={styles.itineraryTime}>{event.schedule.operatingHours}</Text>
-                  <View style={styles.itineraryInfo}>
-                    <Text style={styles.itineraryTitle}>{event.title}</Text>
-                    <Text style={styles.itinerarySubtitle}>{event.subtitle}</Text>
-                  </View>
-                  <FreeBadge label={event.reservationRequired ? '예약' : event.priceLabel} />
-                </Pressable>
-              ))}
+          <Text style={styles.myCultureLead}>
+            후기를 남긴 곳을 다녀온 문화생활로 모아봤어요. 지금까지 총 {reviews.length}곳을 기록했어요.
+          </Text>
+          {reviews.length > 0 ? (
+            <View style={styles.myCultureList}>
+              {reviews.map((review) => {
+                const visitDate = formatVisitDate(review.createdAt);
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={review.id}
+                    onPress={() => onOpenEvent(review.eventId)}
+                    style={styles.myCultureItem}
+                  >
+                    <View style={styles.myCultureItemHeader}>
+                      <Text numberOfLines={1} style={styles.myCultureTitle}>
+                        {review.eventTitle}
+                      </Text>
+                      <Text style={styles.myCultureRating}>★ {review.rating.toFixed(1)}</Text>
+                    </View>
+                    {review.comment ? (
+                      <Text numberOfLines={2} style={styles.myCultureComment}>
+                        {review.comment}
+                      </Text>
+                    ) : (
+                      <Text style={styles.myCultureMeta}>별점만 남긴 후기예요.</Text>
+                    )}
+                    {visitDate ? (
+                      <Text style={styles.myCultureDate}>{visitDate} 방문</Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
             </View>
           ) : (
             <EmptyState
               ctaLabel="콘텐츠 둘러보기"
-              description="저장한 콘텐츠를 일정처럼 다시 확인할 수 있어요."
+              description="다녀온 곳에 후기를 남기면 나만의 문화생활 기록이 차곡차곡 쌓여요."
               onCta={onBrowse}
-              title="예정된 일정이 없어요"
+              title="아직 기록한 문화생활이 없어요"
             />
           )}
         </ScrollView>
@@ -3515,6 +3700,7 @@ function SettingsScreen({
   onBack,
   onDefaultRegionChange,
   onEventPushEnabledChange,
+  onManageInterests,
   onMarketingEnabledChange,
   onPushEnabledChange,
   onRadiusChange,
@@ -3535,6 +3721,7 @@ function SettingsScreen({
   onBack: () => void;
   onDefaultRegionChange: (region: string) => void;
   onEventPushEnabledChange: (enabled: boolean) => void;
+  onManageInterests: () => void;
   onMarketingEnabledChange: (enabled: boolean) => void;
   onPushEnabledChange: (enabled: boolean) => void;
   onRadiusChange: (radiusKm: number) => void;
@@ -3590,7 +3777,11 @@ function SettingsScreen({
           </SettingsSection>
           <SettingsSection title="알림">
             <MenuRow label="알림 설정" onPress={() => Alert.alert('알림 설정', 'MVP에서는 토글로 관리합니다.')} />
-            <MenuRow label="관심 카테고리 관리" onPress={() => Alert.alert('관심 카테고리', userInterests.join(', '))} />
+            <MenuRow
+              label="관심 카테고리 관리"
+              value={userInterests.length > 0 ? userInterests.join(', ') : '미설정'}
+              onPress={onManageInterests}
+            />
             <MenuRow
               label="기본 지역 설정"
               value={defaultRegion}
@@ -3821,35 +4012,60 @@ function BottomTabBar({
 
   return (
     <View style={[styles.tabBar, tabBarStyle]}>
-      <TabButton active={activeTab === 'feed'} label="피드" onPress={() => onTabPress('feed')} symbol="H" />
-      <TabButton active={activeTab === 'map'} label="지도" onPress={() => onTabPress('map')} symbol="P" />
+      <TabButton
+        active={activeTab === 'feed'}
+        icon="home-outline"
+        label="피드"
+        onPress={() => onTabPress('feed')}
+      />
+      <TabButton
+        active={activeTab === 'map'}
+        icon="map-outline"
+        label="지도"
+        onPress={() => onTabPress('map')}
+      />
       <Pressable
+        accessibilityLabel="후기 작성"
         accessibilityRole="button"
         onPress={onFabPress}
         style={styles.centerFab}
       >
-        <Text style={styles.centerFabText}>+</Text>
+        <Ionicons color={colors.onAccent} name="create-outline" size={28} />
       </Pressable>
-      <TabButton active={activeTab === 'saved'} label="저장함" onPress={() => onTabPress('saved')} symbol="M" />
-      <TabButton active={activeTab === 'my'} label="마이" onPress={() => onTabPress('my')} symbol="U" />
+      <TabButton
+        active={activeTab === 'saved'}
+        icon="bookmark-outline"
+        label="저장함"
+        onPress={() => onTabPress('saved')}
+      />
+      <TabButton
+        active={activeTab === 'my'}
+        icon="person-outline"
+        label="마이"
+        onPress={() => onTabPress('my')}
+      />
     </View>
   );
 }
 
 function TabButton({
   active,
+  icon,
   label,
   onPress,
-  symbol,
 }: {
   active: boolean;
+  icon: IoniconsName;
   label: string;
   onPress: () => void;
-  symbol: string;
 }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.tabButton}>
-      <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{symbol}</Text>
+      <Ionicons
+        color={active ? colors.accent : colors.textMuted}
+        name={icon}
+        size={22}
+      />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
     </Pressable>
   );
@@ -4112,17 +4328,23 @@ function InfoCell({ label, value }: { label: string; value: string }) {
   );
 }
 
+type IoniconsName = ComponentProps<typeof Ionicons>['name'];
+
 function IconButton({
   dark,
+  icon,
   label,
   onPress,
   symbol,
 }: {
   dark?: boolean;
+  icon?: IoniconsName;
   label: string;
   onPress: () => void;
-  symbol: string;
+  symbol?: string;
 }) {
+  const iconColor = colors.textPrimary;
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -4130,7 +4352,11 @@ function IconButton({
       onPress={onPress}
       style={[styles.iconButton, dark && styles.iconButtonDark]}
     >
-      <Text style={[styles.iconButtonText, dark && styles.iconButtonTextDark]}>{symbol}</Text>
+      {icon ? (
+        <Ionicons color={iconColor} name={icon} size={20} />
+      ) : (
+        <Text style={[styles.iconButtonText, dark && styles.iconButtonTextDark]}>{symbol}</Text>
+      )}
     </Pressable>
   );
 }
@@ -4168,7 +4394,7 @@ function TopBar({
         onPress={onBack}
         style={styles.topBack}
       >
-        <Text style={styles.topBackText}>←</Text>
+        <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
       </Pressable>
       <Text numberOfLines={1} style={styles.topTitle}>
         {title}
@@ -4473,7 +4699,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingBottom: 36,
     paddingHorizontal: 28,
   },
   dots: {
@@ -4868,9 +5093,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     flex: 1,
   },
-  detailContent: {
-    paddingBottom: 112,
-  },
+  detailContent: {},
   heroImageWrap: {
     backgroundColor: colors.bgRaised,
   },
@@ -4945,6 +5168,12 @@ const styles = StyleSheet.create({
   detailReviewSection: {
     gap: 10,
     marginTop: 20,
+  },
+  detailReviewTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   detailReviewTitle: {
     color: colors.textPrimary,
@@ -5141,17 +5370,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapCanvas: {
-    backgroundColor: '#121418',
+    backgroundColor: '#E8ECF1',
     flex: 1,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  mapTileSurface: {
+    ...StyleSheet.absoluteFillObject,
   },
   nativeMap: {
     ...StyleSheet.absoluteFillObject,
   },
   webTileMap: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#111419',
+    flex: 1,
+    backgroundColor: '#E8ECF1',
     overflow: 'hidden',
+    width: '100%',
+  },
+  webTileMapCompact: {
+    minHeight: 180,
   },
   naverMapSurface: {
     ...StyleSheet.absoluteFillObject,
@@ -5162,11 +5399,11 @@ const styles = StyleSheet.create({
   },
   webMapShade: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(9, 11, 15, 0.34)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   webMapAttribution: {
     bottom: 154,
-    color: 'rgba(245, 247, 250, 0.54)',
+    color: 'rgba(40, 44, 52, 0.6)',
     fontSize: 10,
     fontWeight: '700',
     left: 22,
@@ -5287,7 +5524,7 @@ const styles = StyleSheet.create({
   },
   webMapAttributionCompact: {
     bottom: 8,
-    color: 'rgba(245, 247, 250, 0.54)',
+    color: 'rgba(40, 44, 52, 0.6)',
     fontSize: 10,
     fontWeight: '700',
     left: 10,
@@ -5298,6 +5535,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     top: Platform.OS === 'android' ? 28 : 16,
+  },
+  mapCategorySpacer: {
+    marginTop: 12,
   },
   mapSearchBar: {
     backgroundColor: colors.bgElevated,
@@ -5373,6 +5613,9 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 20,
+  },
+  overlayKeyboard: {
+    flex: 1,
   },
   overlaySafe: {
     flex: 1,
@@ -6048,7 +6291,177 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     height: 60,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: 60,
+  },
+  avatarImage: {
+    height: 60,
+    width: 60,
+  },
+  profilePhotoSection: {
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 20,
+    paddingTop: 4,
+  },
+  profilePhotoAvatar: {
+    alignItems: 'center',
+    backgroundColor: colors.bgRaised,
+    borderRadius: 48,
+    height: 96,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    width: 96,
+  },
+  profilePhotoImage: {
+    height: 96,
+    width: 96,
+  },
+  profilePhotoBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderColor: colors.bg,
+    borderRadius: 14,
+    borderWidth: 2,
+    bottom: 0,
+    height: 28,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 0,
+    width: 28,
+  },
+  profilePhotoAction: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  profilePhotoRemove: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  guideContent: {
+    paddingBottom: 48,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  guideHeroTitle: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  guideHeroText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 21,
+    marginBottom: 20,
+  },
+  guideStep: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderSubtle,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 14,
+    marginBottom: 12,
+    padding: 16,
+  },
+  guideStepIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.bgRaised,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  guideStepBody: {
+    flex: 1,
+    gap: 4,
+  },
+  guideStepTitle: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  guideStepText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  guideTipBox: {
+    backgroundColor: 'rgba(212, 255, 0, 0.08)',
+    borderColor: 'rgba(212, 255, 0, 0.25)',
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 16,
+  },
+  guideTipTitle: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  guideTipText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 21,
+  },
+  myCultureLead: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+  myCultureList: {
+    gap: 12,
+  },
+  myCultureItem: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.borderSubtle,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    padding: 16,
+  },
+  myCultureItemHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  myCultureTitle: {
+    color: colors.textPrimary,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  myCultureRating: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  myCultureComment: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  myCultureMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  myCultureDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
   },
   avatarText: {
     color: colors.textPrimary,

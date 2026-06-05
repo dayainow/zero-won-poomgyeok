@@ -1,3 +1,5 @@
+import { getAppApiUrl } from './apiBase';
+
 export type KakaoPlace = {
   addressName: string;
   categoryName: string;
@@ -27,7 +29,6 @@ type GeocodePayload = {
   message?: string;
 };
 
-const appApiBaseUrl = process.env.EXPO_PUBLIC_APP_URL;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const WINDOW_MS = 60 * 1000;
 const MAX_CLIENT_REQUESTS_PER_WINDOW = 30;
@@ -92,19 +93,7 @@ function normalizeQuery(query: string) {
 }
 
 function getApiUrl(path: string) {
-  const isWebRuntime = typeof document !== 'undefined';
-
-  if (isWebRuntime) {
-    return path;
-  }
-
-  if (!appApiBaseUrl) {
-    throw new Error(
-      '모바일 런타임에서는 EXPO_PUBLIC_APP_URL이 필요합니다. 예: https://your-vercel-domain.vercel.app',
-    );
-  }
-
-  return `${appApiBaseUrl.replace(/\/$/, '')}${path}`;
+  return getAppApiUrl(path);
 }
 
 async function request<T>(url: string) {

@@ -63,7 +63,7 @@ type SavedEventsPayload = {
   savedEvents: ViewerSavedEvent[];
 };
 
-const appApiBaseUrl = process.env.EXPO_PUBLIC_APP_URL;
+import { getAppApiUrl } from './apiBase';
 
 export async function loadViewerData() {
   return requestWithAuth<ViewerData>('/api/me');
@@ -218,13 +218,5 @@ async function requestWithoutAuth<T>(path: string, init: RequestInit = {}) {
 }
 
 function getApiUrl(path: string) {
-  if (typeof window !== 'undefined') {
-    return path;
-  }
-
-  if (!appApiBaseUrl) {
-    throw new Error('EXPO_PUBLIC_APP_URL이 필요합니다.');
-  }
-
-  return `${appApiBaseUrl.replace(/\/$/, '')}${path}`;
+  return getAppApiUrl(path);
 }
