@@ -1,4 +1,31 @@
+const admobEnabled = process.env.EXPO_PUBLIC_ADMOB_ENABLED === 'true';
 const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? '';
+
+/** @type {import('expo/config').ExpoConfig['plugins']} */
+const plugins = [
+  'expo-web-browser',
+  'expo-font',
+  [
+    'expo-image-picker',
+    {
+      photosPermission:
+        '프로필 사진으로 사용할 이미지를 선택하기 위해 사진 접근 권한이 필요합니다.',
+    },
+  ],
+];
+
+if (admobEnabled) {
+  plugins.push([
+    'react-native-google-mobile-ads',
+    {
+      androidAppId: 'ca-app-pub-4061122570976810~5123687949',
+      iosAppId: 'ca-app-pub-3940256099942544~1458002511',
+      delayAppMeasurementInit: true,
+      optimizeInitialization: false,
+      optimizeAdLoading: false,
+    },
+  ]);
+}
 
 /** @type {import('expo/config').ExpoConfig} */
 module.exports = {
@@ -17,7 +44,7 @@ module.exports = {
       backgroundColor: '#F7F8FB',
     },
     ios: {
-      bundleIdentifier: 'com.dobedub.zerowonpoomgyeok',
+      bundleIdentifier: 'com.ola.zerowonpoomgyeok',
       supportsTablet: true,
       infoPlist: {
         NSLocationWhenInUseUsageDescription:
@@ -26,7 +53,7 @@ module.exports = {
       ...(googleMapsApiKey ? { config: { googleMapsApiKey } } : {}),
     },
     android: {
-      package: 'com.dobedub.zerowonpoomgyeok',
+      package: 'com.ola.zerowonpoomgyeok',
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon-v2.png',
@@ -41,17 +68,7 @@ module.exports = {
     web: {
       favicon: './assets/favicon.png',
     },
-    plugins: [
-      'expo-web-browser',
-      'expo-font',
-      [
-        'expo-image-picker',
-        {
-          photosPermission:
-            '프로필 사진으로 사용할 이미지를 선택하기 위해 사진 접근 권한이 필요합니다.',
-        },
-      ],
-    ],
+    plugins,
     extra: {
       eas: {
         projectId: 'ea4a9552-a81d-4317-96eb-4ab3bb9b7e5f',

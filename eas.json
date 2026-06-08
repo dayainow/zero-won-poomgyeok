@@ -20,8 +20,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_ADMOB_ENABLED": "false",
-        "EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID": "ca-app-pub-3940256099942544/6300978111",
+        "EXPO_PUBLIC_ADMOB_ENABLED": "true",
+        "EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID": "ca-app-pub-4061122570976810/9005572723",
         "EXPO_PUBLIC_APP_URL": "https://zero-won-poomgyeok.vercel.app",
         "EXPO_PUBLIC_EVENTS_API_URL": "https://zero-won-poomgyeok.vercel.app/api/events",
         "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://zero-won-poomgyeok.vercel.app/privacy-policy.html"
@@ -31,7 +31,7 @@
   "submit": {
     "production": {
       "android": {
-        "track": "internal"
+        "track": "production"
       }
     }
   }

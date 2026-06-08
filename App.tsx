@@ -56,7 +56,9 @@ import {
   formatEventDistance,
   getInitialCultureEventsData,
   getEventDistanceKm,
+  hasValidEventCoordinate,
   loadCultureEventsData,
+  normalizeCultureEvent,
 } from './src/services/cultureApi';
 import type { CultureEventsDataState } from './src/services/cultureApi';
 import {
@@ -153,9 +155,13 @@ const DATES: CultureFilters['date'][] = ['전체', '오늘', '이번 주', '이�
 
 const TAB_BAR_BODY_HEIGHT = 64;
 const TAB_BAR_TOP_PADDING = 12;
-const TAB_BAR_MIN_BOTTOM_PADDING = 26;
+const TAB_BAR_MIN_BOTTOM_PADDING = 38;
 const TAB_BAR_SCROLL_GAP = 30;
 const DETAIL_BOTTOM_ACTION_HEIGHT = 86;
+const MAP_MAX_RADIUS_KM = 1;
+const MAP_INITIAL_RADIUS_KM = 0.5;
+const MAP_MIN_RADIUS_KM = 0.1;
+const MAP_RADIUS_STEPS = [0.1, 0.18, 0.32, 0.5, 0.75, 1] as const;
 
 function useTabBarLayout() {
   const { bottom } = useSafeAreaInsets();
@@ -217,8 +223,8 @@ const DARK_MAP_STYLE = [
 ];
 
 const WEB_MAP_TILE_SIZE = 256;
-const WEB_MAP_MIN_ZOOM = 11;
-const WEB_MAP_MAX_ZOOM = 15;
+const WEB_MAP_MIN_ZOOM = 13;
+const WEB_MAP_MAX_ZOOM = 18;
 const KAKAO_MAP_APP_KEY = process.env.EXPO_PUBLIC_KAKAO_MAP_APP_KEY?.trim();
 const KAKAO_MAP_SCRIPT_ID = 'zero-won-kakao-map-sdk';
 const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID?.trim();
@@ -263,6 +269,7 @@ declare global {
 }
 
 export default function App() {
+  const { tabBarHeight } = useTabBarLayout();
   const [booting, setBooting] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -517,17 +524,50 @@ export default function App() {
     [activeFilters, cultureEvents],
   );
 
-  const nearbyEvents = useMemo(
+  const eventsWithDistance = useMemo(
     () =>
       feedEvents
         .map((event) => ({
           ...event,
           distanceKm: getEventDistanceKm(location, event),
         }))
-        .filter((event) => (event.distanceKm ?? 0) <= filters.radiusKm || filters.radiusKm >= 30)
         .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0)),
-    [feedEvents, filters.radiusKm, location],
+    [feedEvents, location],
   );
+
+  const nearbyEvents = useMemo(
+    () =>
+      eventsWithDistance.filter(
+        (event) =>
+          (event.distanceKm ?? 0) <= filters.radiusKm || filters.radiusKm >= 30,
+      ),
+    [eventsWithDistance, filters.radiusKm],
+  );
+
+  const mapDisplayEvents = useMemo(() => {
+    const categoryFiltered = filterEvents(cultureEvents, {
+      category: selectedCategory,
+      date: '전체',
+      price: '전체',
+      region: '전체',
+    })
+      .map(normalizeCultureEvent)
+      .filter(hasValidEventCoordinate);
+
+    const source =
+      categoryFiltered.length > 0
+        ? categoryFiltered
+        : CULTURE_EVENTS.map(normalizeCultureEvent).filter(hasValidEventCoordinate);
+
+    return source
+      .map((event) => ({
+        ...event,
+        distanceKm: getEventDistanceKm(location, event),
+      }))
+      .filter((event) => (event.distanceKm ?? Infinity) <= MAP_MAX_RADIUS_KM)
+      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+      .slice(0, 40);
+  }, [cultureEvents, location, selectedCategory]);
 
   const visibleSavedIds = isSignedIn ? viewerData?.savedEventIds ?? savedIds : [];
   const reviewCount = isSignedIn ? myReviews.length : legacyReviewCount;
@@ -564,7 +604,8 @@ export default function App() {
 
   const featured = nearbyEvents[0] ?? cultureEvents[0] ?? CULTURE_EVENTS[0];
   const selectedMapEvent =
-    nearbyEvents.find((event) => event.id === selectedMapEventId) ??
+    mapDisplayEvents.find((event) => event.id === selectedMapEventId) ??
+    mapDisplayEvents[0] ??
     nearbyEvents[0] ??
     cultureEvents[0] ??
     CULTURE_EVENTS[0];
@@ -1175,7 +1216,8 @@ export default function App() {
 
             {activeTab === 'map' ? (
               <MapScreen
-                events={nearbyEvents}
+                events={mapDisplayEvents}
+                mapCenter={location}
                 onCategoryChange={setSelectedCategory}
                 onEventPress={openEvent}
                 onSearchPress={() => setOverlay('search')}
@@ -1218,7 +1260,9 @@ export default function App() {
               />
             ) : null}
 
-            <AdBanner />
+            <View style={[styles.adBannerDock, { bottom: tabBarHeight }]}>
+              <AdBanner />
+            </View>
             <BottomTabBar activeTab={activeTab} onFabPress={openFabPress} onTabPress={openTab} />
           </>
         )}
@@ -1536,26 +1580,31 @@ function FeedScreen({
           {locationLoading ? <ActivityIndicator color={colors.accent} size="small" /> : null}
         </Pressable>
         {locationMessage ? <Text style={styles.locationMessage}>{locationMessage}</Text> : null}
-        <View style={styles.dataSourceRow}>
-          <View style={styles.dataSourcePill}>
-            {cultureEventsLoading ? (
-              <ActivityIndicator color={colors.accent} size="small" />
-            ) : (
-              <View style={styles.dataSourceDot} />
-            )}
-            <Text style={styles.dataSourceText}>
-              {dataSource.sourceLabel} · {dataSource.events.length}개
-            </Text>
+        {__DEV__ || dataSource.warning ? (
+          <View style={styles.dataSourceRow}>
+            <View style={styles.dataSourcePill}>
+              {cultureEventsLoading ? (
+                <ActivityIndicator color={colors.accent} size="small" />
+              ) : (
+                <View style={styles.dataSourceDot} />
+              )}
+              <Text style={styles.dataSourceText}>
+                {__DEV__
+                  ? `${dataSource.sourceLabel} · ${dataSource.events.length}개`
+                  : `${dataSource.events.length}개 행사`}
+              </Text>
+            </View>
+            {__DEV__ && dataSource.updatedAt ? (
+              <Text style={styles.dataSourceTime}>
+                {new Date(dataSource.updatedAt).toLocaleTimeString('ko-KR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                갱신
+              </Text>
+            ) : null}
           </View>
-          {dataSource.updatedAt ? (
-            <Text style={styles.dataSourceTime}>
-              {new Date(dataSource.updatedAt).toLocaleTimeString('ko-KR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })} 갱신
-            </Text>
-          ) : null}
-        </View>
+        ) : null}
         {dataSource.warning ? (
           <Text style={styles.dataSourceWarning}>{dataSource.warning}</Text>
         ) : null}
@@ -1918,6 +1967,7 @@ function DetailMapPreview({ event }: { event: CultureEvent & { distanceKm?: numb
 
 function MapScreen({
   events,
+  mapCenter,
   onCategoryChange,
   onEventPress,
   onSearchPress,
@@ -1928,6 +1978,7 @@ function MapScreen({
   selectedEvent,
 }: {
   events: Array<CultureEvent & { distanceKm?: number }>;
+  mapCenter: UserCoordinate;
   onCategoryChange: (category: Category) => void;
   onEventPress: (event: CultureEvent) => void;
   onSearchPress: () => void;
@@ -1938,13 +1989,21 @@ function MapScreen({
   selectedEvent: CultureEvent & { distanceKm?: number };
 }) {
   const mapEvents = events.filter(hasValidEventCoordinate).slice(0, 40);
-  const useNativeMap = shouldUseNativeMap() && mapEvents.length > 0;
-  const mapRegion = createEventMapRegion(mapEvents, selectedEvent);
+  const [viewRadiusKm, setViewRadiusKm] = useState(MAP_INITIAL_RADIUS_KM);
+  const useNativeMap =
+    Platform.OS !== 'android' && shouldUseNativeMap() && mapEvents.length > 0;
+  const mapRegion = createNearbyMapRegion(mapCenter, viewRadiusKm);
   const MapViewComponent = NativeMapView;
   const MarkerComponent = NativeMarker;
   const [webMapSize, setWebMapSize] = useState({ height: 0, width: 0 });
   const mapCanvasSize = getMapCanvasSize(webMapSize);
   const { tabBarHeight, adBannerHeight } = useTabBarLayout();
+  const canZoomIn = viewRadiusKm > MAP_MIN_RADIUS_KM + 0.01;
+  const canZoomOut = viewRadiusKm < MAP_MAX_RADIUS_KM - 0.01;
+
+  useEffect(() => {
+    setViewRadiusKm(MAP_INITIAL_RADIUS_KM);
+  }, [mapCenter.latitude, mapCenter.longitude, selectedCategory]);
 
   const handleMapLayout = useCallback((event: LayoutChangeEvent) => {
     const { height, width } = event.nativeEvent.layout;
@@ -2004,9 +2063,10 @@ function MapScreen({
             selectedEvent={selectedEvent}
             size={mapCanvasSize}
           />
-        ) : mapEvents.length > 0 ? (
-          <View style={styles.mapTileSurface}>
+        ) : (
+          <View collapsable={false} style={styles.mapTileSurface}>
             <WebTileMap
+              key={`tile-map-${viewRadiusKm}`}
               events={mapEvents}
               mapRegion={mapRegion}
               onSelectEvent={onSelectEvent}
@@ -2014,29 +2074,6 @@ function MapScreen({
               size={mapCanvasSize}
             />
           </View>
-        ) : (
-          <>
-            <View style={styles.mapGridLineOne} />
-            <View style={styles.mapGridLineTwo} />
-            {events.slice(0, 8).map((event, index) => (
-              <Pressable
-                accessibilityRole="button"
-                key={event.id}
-                onPress={() => onSelectEvent(event.id)}
-                style={[
-                  styles.mapPin,
-                  {
-                    left: `${12 + ((index * 19) % 70)}%`,
-                    top: `${22 + ((index * 13) % 52)}%`,
-                    borderColor: getCategoryColor(event.category),
-                  },
-                  selectedEvent.id === event.id && styles.mapPinActive,
-                ]}
-              >
-                <Image source={{ uri: event.thumbnail }} style={styles.mapPinImage} />
-              </Pressable>
-            ))}
-          </>
         )}
       </View>
 
@@ -2047,6 +2084,31 @@ function MapScreen({
         <View style={styles.mapCategorySpacer}>
           <CategoryRow compact selected={selectedCategory} onSelect={onCategoryChange} />
         </View>
+      </View>
+
+      <View
+        pointerEvents="box-none"
+        style={[styles.mapZoomControls, { bottom: tabBarHeight + adBannerHeight + 120 }]}
+      >
+        <Pressable
+          accessibilityLabel="지도 확대"
+          accessibilityRole="button"
+          disabled={!canZoomIn}
+          onPress={() => setViewRadiusKm((current) => adjustMapRadius(current, 'in'))}
+          style={[styles.mapZoomButton, !canZoomIn && styles.mapZoomButtonDisabled]}
+        >
+          <Ionicons color={colors.textPrimary} name="add" size={20} />
+        </Pressable>
+        <Text style={styles.mapZoomLabel}>{formatMapRadiusLabel(viewRadiusKm)}</Text>
+        <Pressable
+          accessibilityLabel="지도 축소"
+          accessibilityRole="button"
+          disabled={!canZoomOut}
+          onPress={() => setViewRadiusKm((current) => adjustMapRadius(current, 'out'))}
+          style={[styles.mapZoomButton, !canZoomOut && styles.mapZoomButtonDisabled]}
+        >
+          <Ionicons color={colors.textPrimary} name="remove" size={20} />
+        </Pressable>
       </View>
 
       <Pressable
@@ -2591,6 +2653,7 @@ function WebTileMap({
       {tiles.map((tile) => (
         <Image
           key={`${tile.zoom}-${tile.x}-${tile.y}`}
+          resizeMode="cover"
           source={{ uri: getWebTileUrl(tile.zoom, tile.x, tile.y) }}
           style={[
             styles.webMapTile,
@@ -2608,7 +2671,7 @@ function WebTileMap({
 
       {events.map((event) => {
         const point = projectCoordinate(event.location.lat, event.location.lng, zoom);
-        const markerOffset = compact ? 22 : 27;
+        const markerOffset = compact ? 22 : 22;
 
         return (
           <Pressable
@@ -2709,21 +2772,17 @@ function getReviewSubmitErrorMessage(error: unknown): string {
   return message;
 }
 
-function hasValidEventCoordinate(event: CultureEvent): boolean {
-  return Number.isFinite(event.location.lat) && Number.isFinite(event.location.lng);
-}
-
 function shouldUseNativeMap(): boolean {
   if (!NativeMapView || !NativeMarker) {
     return false;
   }
 
-  if (Platform.OS === 'ios') {
-    return true;
+  if (Platform.OS === 'android') {
+    return false;
   }
 
-  if (Platform.OS === 'android') {
-    return Boolean(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim());
+  if (Platform.OS === 'ios') {
+    return true;
   }
 
   return false;
@@ -2739,6 +2798,62 @@ function getMapCanvasSize(measured: { height: number; width: number }): {
 
   const { height, width } = Dimensions.get('window');
   return { width, height: Math.max(Math.round(height * 0.72), 480) };
+}
+
+function createNearbyMapRegion(
+  center: UserCoordinate,
+  radiusKm = MAP_INITIAL_RADIUS_KM,
+): MapRegion {
+  const clampedRadius = clampMapRadius(radiusKm);
+  const latitudeDelta = (clampedRadius * 2) / 111.32;
+  const longitudeDelta =
+    (clampedRadius * 2) / (111.32 * Math.cos((center.latitude * Math.PI) / 180));
+
+  return {
+    latitude: center.latitude,
+    longitude: center.longitude,
+    latitudeDelta,
+    longitudeDelta,
+  };
+}
+
+function clampMapRadius(radiusKm: number) {
+  return Math.min(MAP_MAX_RADIUS_KM, Math.max(MAP_MIN_RADIUS_KM, radiusKm));
+}
+
+function adjustMapRadius(radiusKm: number, direction: 'in' | 'out') {
+  const clamped = clampMapRadius(radiusKm);
+  let stepIndex = MAP_RADIUS_STEPS.findIndex((step) => step >= clamped - 0.001);
+
+  if (stepIndex === -1) {
+    stepIndex = MAP_RADIUS_STEPS.length - 1;
+  } else if (stepIndex > 0 && MAP_RADIUS_STEPS[stepIndex] - clamped > 0.05) {
+    stepIndex -= 1;
+  }
+
+  if (direction === 'in') {
+    return MAP_RADIUS_STEPS[Math.max(0, stepIndex - 1)];
+  }
+
+  return MAP_RADIUS_STEPS[Math.min(MAP_RADIUS_STEPS.length - 1, stepIndex + 1)];
+}
+
+function formatMapRadiusLabel(radiusKm: number) {
+  const clamped = clampMapRadius(radiusKm);
+
+  if (clamped >= MAP_MAX_RADIUS_KM - 0.01) {
+    return '1km';
+  }
+
+  if (clamped <= MAP_MIN_RADIUS_KM + 0.01) {
+    return '100m';
+  }
+
+  if (clamped < 1) {
+    return `${Math.round(clamped * 1000)}m`;
+  }
+
+  return `${clamped.toFixed(1).replace(/\.0$/, '')}km`;
 }
 
 function createEventMapRegion(
@@ -2825,7 +2940,7 @@ function createWebMapTiles(
 }
 
 function getWebMapZoom(longitudeDelta: number): number {
-  const zoom = Math.round(Math.log2(360 / Math.max(longitudeDelta, 0.03)));
+  const zoom = Math.round(Math.log2(360 / Math.max(longitudeDelta, 0.0005)));
 
   return Math.min(WEB_MAP_MAX_ZOOM, Math.max(WEB_MAP_MIN_ZOOM, zoom));
 }
@@ -3550,7 +3665,7 @@ function MyScreen({
 
       <View style={styles.profileStats}>
         <ProfileStat label="저장한 콘텐츠" value={savedCount} />
-        <ProfileStat label="방문한 곳" value={isSignedIn ? MOCK_USER.visitedCount : 0} />
+        <ProfileStat label="둘러본 곳" value={isSignedIn ? reviewCount : 0} />
         <ProfileStat label="후기" value={reviewCount} />
       </View>
 
@@ -3595,7 +3710,7 @@ function MyCultureScreen({
         <TopBar onBack={onBack} title="나의 문화생활" />
         <ScrollView contentContainerStyle={styles.overlayContent}>
           <Text style={styles.myCultureLead}>
-            후기를 남긴 곳을 다녀온 문화생활로 모아봤어요. 지금까지 총 {reviews.length}곳을 기록했어요.
+            후기를 남긴 곳을 둘러본 문화생활로 모아봤어요. 지금까지 총 {reviews.length}곳을 기록했어요.
           </Text>
           {reviews.length > 0 ? (
             <View style={styles.myCultureList}>
@@ -3623,7 +3738,7 @@ function MyCultureScreen({
                       <Text style={styles.myCultureMeta}>별점만 남긴 후기예요.</Text>
                     )}
                     {visitDate ? (
-                      <Text style={styles.myCultureDate}>{visitDate} 방문</Text>
+                      <Text style={styles.myCultureDate}>{visitDate} 기록</Text>
                     ) : null}
                   </Pressable>
                 );
@@ -3632,7 +3747,7 @@ function MyCultureScreen({
           ) : (
             <EmptyState
               ctaLabel="콘텐츠 둘러보기"
-              description="다녀온 곳에 후기를 남기면 나만의 문화생활 기록이 차곡차곡 쌓여요."
+              description="둘러본 곳에 후기를 남기면 나만의 문화생활 기록이 차곡차곡 쌓여요."
               onCta={onBrowse}
               title="아직 기록한 문화생활이 없어요"
             />
@@ -5382,13 +5497,17 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   webTileMap: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#E8ECF1',
     overflow: 'hidden',
-    width: '100%',
   },
   webTileMapCompact: {
     minHeight: 180,
+    position: 'relative',
+    top: undefined,
+    right: undefined,
+    bottom: undefined,
+    left: undefined,
   },
   naverMapSurface: {
     ...StyleSheet.absoluteFillObject,
@@ -5484,13 +5603,13 @@ const styles = StyleSheet.create({
   webMapMarker: {
     alignItems: 'center',
     backgroundColor: colors.bg,
-    borderRadius: 28,
+    borderRadius: 22,
     borderWidth: 2,
-    height: 54,
+    height: 44,
     justifyContent: 'center',
     overflow: 'hidden',
     position: 'absolute',
-    width: 54,
+    width: 44,
   },
   webMapMarkerActive: {
     borderColor: colors.accent,
@@ -5498,9 +5617,9 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.12 }],
   },
   webMapMarkerImage: {
-    borderRadius: 24,
-    height: 48,
-    width: 48,
+    borderRadius: 20,
+    height: 40,
+    width: 40,
   },
   webMapMarkerCompact: {
     alignItems: 'center',
@@ -5552,6 +5671,36 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '700',
+  },
+  mapZoomControls: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(18, 20, 24, 0.88)',
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    position: 'absolute',
+    right: 16,
+  },
+  mapZoomButton: {
+    alignItems: 'center',
+    backgroundColor: colors.bgRaised,
+    borderRadius: 10,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  mapZoomButtonDisabled: {
+    opacity: 0.35,
+  },
+  mapZoomLabel: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+    minWidth: 36,
+    textAlign: 'center',
   },
   mapBottomCard: {
     alignItems: 'center',
@@ -6711,6 +6860,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 16,
   },
+  adBannerDock: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    zIndex: 9,
+  },
   tabBar: {
     alignItems: 'center',
     backgroundColor: colors.bgElevated,
@@ -6722,12 +6877,14 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
+    zIndex: 10,
   },
   tabButton: {
     alignItems: 'center',
     flex: 1,
-    gap: 4,
+    gap: 5,
     justifyContent: 'center',
+    paddingBottom: 2,
   },
   tabIcon: {
     color: colors.textMuted,

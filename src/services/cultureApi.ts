@@ -169,7 +169,7 @@ export async function loadCultureEventsData(): Promise<CultureEventsDataState> {
     }
 
     return {
-      events: ensureUniqueEventIds(payload.events),
+      events: ensureUniqueEventIds(payload.events.map(normalizeCultureEvent)),
       sourceLabel:
         payload.source === 'seoul-open-api'
           ? '서울 열린데이터광장 문화행사 API'
@@ -300,6 +300,27 @@ function createEventId(event: CultureEvent, index: number) {
   }
 
   return `event-${hash.toString(36)}`;
+}
+
+export function hasValidEventCoordinate(event: CultureEvent) {
+  const lat = Number(event.location?.lat);
+  const lng = Number(event.location?.lng);
+
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+export function normalizeCultureEvent(event: CultureEvent): CultureEvent {
+  const lat = Number(event.location?.lat);
+  const lng = Number(event.location?.lng);
+
+  return {
+    ...event,
+    location: {
+      address: event.location?.address ?? '',
+      lat: Number.isFinite(lat) ? lat : Number.NaN,
+      lng: Number.isFinite(lng) ? lng : Number.NaN,
+    },
+  };
 }
 
 export function getEventDistanceKm(
