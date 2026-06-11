@@ -54,6 +54,7 @@ module.exports = {
     },
     android: {
       package: 'com.ola.zerowonpoomgyeok',
+      versionCode: 5,
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon-v2.png',

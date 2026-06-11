@@ -36,6 +36,7 @@ import {
 } from './src/data/events';
 import { AdBanner } from './src/components/AdBanner';
 import { NativeMapView, NativeMarker, NativeMapProvider } from './src/components/NativeMap';
+import { WebTileMap } from './src/components/WebTileMap';
 import { AD_BANNER_HEIGHT, isAdMobEnabled } from './src/services/admob';
 import {
   AuthSessionState,
@@ -161,7 +162,7 @@ const DETAIL_BOTTOM_ACTION_HEIGHT = 86;
 const MAP_MAX_RADIUS_KM = 1;
 const MAP_INITIAL_RADIUS_KM = 0.5;
 const MAP_MIN_RADIUS_KM = 0.1;
-const MAP_RADIUS_STEPS = [0.1, 0.18, 0.32, 0.5, 0.75, 1] as const;
+const MAP_RADIUS_STEPS = [0.1, 0.25, 0.5, 1] as const;
 
 function useTabBarLayout() {
   const { bottom } = useSafeAreaInsets();
@@ -222,9 +223,6 @@ const DARK_MAP_STYLE = [
   },
 ];
 
-const WEB_MAP_TILE_SIZE = 256;
-const WEB_MAP_MIN_ZOOM = 13;
-const WEB_MAP_MAX_ZOOM = 18;
 const KAKAO_MAP_APP_KEY = process.env.EXPO_PUBLIC_KAKAO_MAP_APP_KEY?.trim();
 const KAKAO_MAP_SCRIPT_ID = 'zero-won-kakao-map-sdk';
 const NAVER_MAP_CLIENT_ID = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID?.trim();
@@ -1951,15 +1949,20 @@ function DetailMapPreview({ event }: { event: CultureEvent & { distanceKm?: numb
           selectedEvent={event}
           size={mapCanvasSize}
         />
-      ) : (
+      ) : mapSize.width > 0 && mapSize.height > 0 ? (
         <WebTileMap
           compact
           events={[event]}
+          getCategoryColor={getCategoryColor}
           mapRegion={mapRegion}
           onSelectEvent={() => undefined}
           selectedEvent={event}
-          size={mapCanvasSize}
+          size={mapSize}
         />
+      ) : (
+        <View style={styles.mapPreviewFallback}>
+          <ActivityIndicator color={colors.accent} size="small" />
+        </View>
       )}
     </View>
   );
@@ -1996,7 +1999,7 @@ function MapScreen({
   const MapViewComponent = NativeMapView;
   const MarkerComponent = NativeMarker;
   const [webMapSize, setWebMapSize] = useState({ height: 0, width: 0 });
-  const mapCanvasSize = getMapCanvasSize(webMapSize);
+  const mapReady = webMapSize.width > 0 && webMapSize.height > 0;
   const { tabBarHeight, adBannerHeight } = useTabBarLayout();
   const canZoomIn = viewRadiusKm > MAP_MIN_RADIUS_KM + 0.01;
   const canZoomOut = viewRadiusKm < MAP_MAX_RADIUS_KM - 0.01;
@@ -2061,18 +2064,22 @@ function MapScreen({
             mapRegion={mapRegion}
             onSelectEvent={onSelectEvent}
             selectedEvent={selectedEvent}
-            size={mapCanvasSize}
+            size={getMapCanvasSize(webMapSize)}
           />
-        ) : (
+        ) : mapReady ? (
           <View collapsable={false} style={styles.mapTileSurface}>
             <WebTileMap
-              key={`tile-map-${viewRadiusKm}`}
               events={mapEvents}
+              getCategoryColor={getCategoryColor}
               mapRegion={mapRegion}
               onSelectEvent={onSelectEvent}
               selectedEvent={selectedEvent}
-              size={mapCanvasSize}
+              size={webMapSize}
             />
+          </View>
+        ) : (
+          <View style={styles.mapTileLoading}>
+            <ActivityIndicator color={colors.accent} size="small" />
           </View>
         )}
       </View>
@@ -2181,6 +2188,7 @@ function WebMapSurface({
     <WebTileMap
       compact={compact}
       events={events}
+      getCategoryColor={getCategoryColor}
       mapRegion={mapRegion}
       onSelectEvent={onSelectEvent}
       selectedEvent={selectedEvent}
@@ -2303,6 +2311,7 @@ function KakaoWebMap({
       <WebTileMap
         compact={compact}
         events={events}
+        getCategoryColor={getCategoryColor}
         mapRegion={mapRegion}
         onSelectEvent={onSelectEvent}
         selectedEvent={selectedEvent}
@@ -2445,6 +2454,7 @@ function NaverWebMap({
       <WebTileMap
         compact={compact}
         events={events}
+        getCategoryColor={getCategoryColor}
         mapRegion={mapRegion}
         onSelectEvent={onSelectEvent}
         selectedEvent={selectedEvent}
@@ -2627,83 +2637,6 @@ function getKakaoMapLevel(longitudeDelta: number): number {
   return 8;
 }
 
-function WebTileMap({
-  compact = false,
-  events,
-  mapRegion,
-  onSelectEvent,
-  selectedEvent,
-  size,
-}: {
-  compact?: boolean;
-  events: Array<CultureEvent & { distanceKm?: number }>;
-  mapRegion: MapRegion;
-  onSelectEvent: (eventId: string) => void;
-  selectedEvent: CultureEvent;
-  size: { height: number; width: number };
-}) {
-  const zoom = getWebMapZoom(mapRegion.longitudeDelta);
-  const centerPoint = projectCoordinate(mapRegion.latitude, mapRegion.longitude, zoom);
-  const left = centerPoint.x - size.width / 2;
-  const top = centerPoint.y - size.height / 2;
-  const tiles = createWebMapTiles(left, top, size, zoom);
-
-  return (
-    <View style={[styles.webTileMap, compact && styles.webTileMapCompact]}>
-      {tiles.map((tile) => (
-        <Image
-          key={`${tile.zoom}-${tile.x}-${tile.y}`}
-          resizeMode="cover"
-          source={{ uri: getWebTileUrl(tile.zoom, tile.x, tile.y) }}
-          style={[
-            styles.webMapTile,
-            {
-              height: WEB_MAP_TILE_SIZE,
-              left: tile.left,
-              top: tile.top,
-              width: WEB_MAP_TILE_SIZE,
-            },
-          ]}
-        />
-      ))}
-
-      <View pointerEvents="none" style={styles.webMapShade} />
-
-      {events.map((event) => {
-        const point = projectCoordinate(event.location.lat, event.location.lng, zoom);
-        const markerOffset = compact ? 22 : 22;
-
-        return (
-          <Pressable
-            accessibilityRole="button"
-            key={event.id}
-            onPress={() => onSelectEvent(event.id)}
-            style={[
-              compact ? styles.webMapMarkerCompact : styles.webMapMarker,
-              {
-                borderColor: getCategoryColor(event.category),
-                left: point.x - left - markerOffset,
-                top: point.y - top - markerOffset,
-              },
-              selectedEvent.id === event.id &&
-                (compact ? styles.webMapMarkerCompactActive : styles.webMapMarkerActive),
-            ]}
-          >
-            <Image
-              source={{ uri: event.thumbnail }}
-              style={compact ? styles.webMapMarkerImageCompact : styles.webMapMarkerImage}
-            />
-          </Pressable>
-        );
-      })}
-
-      <Text style={compact ? styles.webMapAttributionCompact : styles.webMapAttribution}>
-        © OpenStreetMap © CARTO
-      </Text>
-    </View>
-  );
-}
-
 function formatAuthError(error: unknown): string {
   const message =
     error instanceof Error ? error.message : '인증 처리 중 문제가 발생했습니다.';
@@ -2821,15 +2754,17 @@ function clampMapRadius(radiusKm: number) {
   return Math.min(MAP_MAX_RADIUS_KM, Math.max(MAP_MIN_RADIUS_KM, radiusKm));
 }
 
-function adjustMapRadius(radiusKm: number, direction: 'in' | 'out') {
+function nearestMapRadiusStep(radiusKm: number) {
   const clamped = clampMapRadius(radiusKm);
-  let stepIndex = MAP_RADIUS_STEPS.findIndex((step) => step >= clamped - 0.001);
 
-  if (stepIndex === -1) {
-    stepIndex = MAP_RADIUS_STEPS.length - 1;
-  } else if (stepIndex > 0 && MAP_RADIUS_STEPS[stepIndex] - clamped > 0.05) {
-    stepIndex -= 1;
-  }
+  return MAP_RADIUS_STEPS.reduce((best, step) =>
+    Math.abs(step - clamped) < Math.abs(best - clamped) ? step : best,
+  );
+}
+
+function adjustMapRadius(radiusKm: number, direction: 'in' | 'out') {
+  const current = nearestMapRadiusStep(radiusKm);
+  const stepIndex = MAP_RADIUS_STEPS.indexOf(current);
 
   if (direction === 'in') {
     return MAP_RADIUS_STEPS[Math.max(0, stepIndex - 1)];
@@ -2889,64 +2824,6 @@ function createEventMapRegion(
     latitudeDelta: Math.max(fallbackDelta.latitudeDelta, latitudeSpan * 1.6),
     longitudeDelta: Math.max(fallbackDelta.longitudeDelta, longitudeSpan * 1.6),
   };
-}
-
-function projectCoordinate(latitude: number, longitude: number, zoom: number) {
-  const sinLatitude = Math.sin((latitude * Math.PI) / 180);
-  const scale = WEB_MAP_TILE_SIZE * 2 ** zoom;
-
-  return {
-    x: ((longitude + 180) / 360) * scale,
-    y:
-      (0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI)) *
-      scale,
-  };
-}
-
-function createWebMapTiles(
-  left: number,
-  top: number,
-  size: { height: number; width: number },
-  zoom: number,
-) {
-  if (size.height <= 0 || size.width <= 0) {
-    return [];
-  }
-
-  const maxTile = 2 ** zoom;
-  const startX = Math.floor(left / WEB_MAP_TILE_SIZE);
-  const endX = Math.floor((left + size.width) / WEB_MAP_TILE_SIZE);
-  const startY = Math.floor(top / WEB_MAP_TILE_SIZE);
-  const endY = Math.floor((top + size.height) / WEB_MAP_TILE_SIZE);
-  const tiles: Array<{ left: number; top: number; x: number; y: number; zoom: number }> = [];
-
-  for (let x = startX; x <= endX; x += 1) {
-    for (let y = startY; y <= endY; y += 1) {
-      if (y < 0 || y >= maxTile) {
-        continue;
-      }
-
-      tiles.push({
-        left: x * WEB_MAP_TILE_SIZE - left,
-        top: y * WEB_MAP_TILE_SIZE - top,
-        x: ((x % maxTile) + maxTile) % maxTile,
-        y,
-        zoom,
-      });
-    }
-  }
-
-  return tiles;
-}
-
-function getWebMapZoom(longitudeDelta: number): number {
-  const zoom = Math.round(Math.log2(360 / Math.max(longitudeDelta, 0.0005)));
-
-  return Math.min(WEB_MAP_MAX_ZOOM, Math.max(WEB_MAP_MIN_ZOOM, zoom));
-}
-
-function getWebTileUrl(zoom: number, x: number, y: number): string {
-  return `https://a.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${x}/${y}.png`;
 }
 
 function SearchScreen({
@@ -5492,6 +5369,12 @@ const styles = StyleSheet.create({
   },
   mapTileSurface: {
     ...StyleSheet.absoluteFillObject,
+  },
+  mapTileLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    backgroundColor: '#D8DEE6',
+    justifyContent: 'center',
   },
   nativeMap: {
     ...StyleSheet.absoluteFillObject,

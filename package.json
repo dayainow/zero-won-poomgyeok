@@ -6,11 +6,13 @@
     "start": "expo start",
     "build": "expo export --platform web",
     "api:dev": "npx vercel dev",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "smoke:prod": "node scripts/smoke-prod-e2e.mjs"
+    "smoke:prod": "node scripts/smoke-prod-e2e.mjs",
+    "android:apk": "cd android && ./gradlew assembleRelease && cp app/build/outputs/apk/release/app-release.apk ../build/zwp-local-release.apk",
+    "android:install": "cd android && ./gradlew installRelease"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
