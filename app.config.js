@@ -72,7 +72,7 @@ module.exports = {
     plugins,
     extra: {
       eas: {
-        projectId: 'ea4a9552-a81d-4317-96eb-4ab3bb9b7e5f',
+        projectId: '85894550-bcb0-4644-b402-33de6cce3905',
       },
     },
     owner: 'dayainow',
