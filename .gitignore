@@ -14,3 +14,6 @@ yarn-error.log*
 !.env.example
 .vercel
 .env*.local
+*.jks
+*.keystore
+!android/app/debug.keystore

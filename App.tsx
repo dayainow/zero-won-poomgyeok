@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -8,10 +9,12 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  FlatList,
   Image,
   KeyboardAvoidingView,
   Linking,
   type LayoutChangeEvent,
+  type ListRenderItemInfo,
   Platform,
   Pressable,
   SafeAreaView,
@@ -73,10 +76,13 @@ import {
 import type { ViewerData } from './src/services/userApi';
 import {
   createReview,
+  likeReview,
   loadEventReviews,
   loadMyReviews,
   reportReview,
+  unlikeReview,
   type ReviewItem,
+  type ReviewSort,
 } from './src/services/reviewApi';
 import type {
   Category,
@@ -85,6 +91,21 @@ import type {
   PriceTier,
   UserCoordinate,
 } from './src/types';
+
+// Sentry: DSN env가 있을 때만 init. 없으면 완전 no-op(빌드/런타임 영향 0).
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN?.trim();
+
+if (SENTRY_DSN) {
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      environment: __DEV__ ? 'development' : 'production',
+      tracesSampleRate: 0,
+    });
+  } catch {
+    // init 실패가 앱 부팅을 막지 않도록 흡수한다.
+  }
+}
 
 type MapRegion = {
   latitude: number;
@@ -113,7 +134,8 @@ type OverlayKey =
   | 'profile'
   | 'settings'
   | 'guide'
-  | 'review';
+  | 'review'
+  | 'reviews';
 type AuthMode = 'signIn' | 'signUp';
 
 type ReviewSuccessPayload = {
@@ -149,6 +171,14 @@ const DEFAULT_FILTERS: CultureFilters = {
   date: '전체',
   radiusKm: 5,
 };
+
+const REVIEWS_PAGE_SIZE = 20;
+const FEED_PAGE_SIZE = 12;
+const REVIEW_SORT_TABS: Array<{ key: ReviewSort; label: string }> = [
+  { key: 'recent', label: '최신순' },
+  { key: 'rating', label: '평점순' },
+  { key: 'likes', label: '좋아요순' },
+];
 
 const REGIONS = ['전체', '서울', '경기', '인천', '부산', '대구', '광주', '대전', '기타'];
 const PRICES: CultureFilters['price'][] = ['전체', '무료', '1만원 이하', '1-3만원'];
@@ -266,7 +296,7 @@ declare global {
   }
 }
 
-export default function App() {
+function App() {
   const { tabBarHeight } = useTabBarLayout();
   const [booting, setBooting] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -312,6 +342,12 @@ export default function App() {
   const [detailReviews, setDetailReviews] = useState<ReviewItem[]>([]);
   const [detailReviewsLoading, setDetailReviewsLoading] = useState(false);
   const [detailReviewsError, setDetailReviewsError] = useState('');
+  const [allReviews, setAllReviews] = useState<ReviewItem[]>([]);
+  const [allReviewsLoading, setAllReviewsLoading] = useState(false);
+  const [allReviewsLoadingMore, setAllReviewsLoadingMore] = useState(false);
+  const [allReviewsError, setAllReviewsError] = useState('');
+  const [allReviewsHasMore, setAllReviewsHasMore] = useState(false);
+  const [allReviewsSort, setAllReviewsSort] = useState<ReviewSort>('recent');
   const [reviewPinnedEvent, setReviewPinnedEvent] = useState<CultureEvent | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const authConfigured = isSupabaseAuthConfigured();
@@ -810,7 +846,7 @@ export default function App() {
     setDetailReviewsError('');
 
     try {
-      const payload = await loadEventReviews(eventId, 3);
+      const payload = await loadEventReviews(eventId, { limit: 3 });
       setDetailReviews(payload.reviews);
     } catch (error) {
       setDetailReviews([]);
@@ -834,6 +870,16 @@ export default function App() {
 
     fetchDetailReviews(eventId);
   }, [fetchDetailReviews, selectedEvent?.id]);
+
+  // 상세가 닫히거나 다른 행사로 바뀌면 전체보기 상태를 초기화한다.
+  useEffect(() => {
+    setAllReviews([]);
+    setAllReviewsError('');
+    setAllReviewsHasMore(false);
+    setAllReviewsLoading(false);
+    setAllReviewsLoadingMore(false);
+    setAllReviewsSort('recent');
+  }, [selectedEvent?.id]);
 
   async function submitReview(input: {
     comment: string;
@@ -871,6 +917,146 @@ export default function App() {
       rating: input.rating,
     });
     setShowReviewSuccessModal(true);
+  }
+
+  // 후기 좋아요 토글: 미리보기/전체보기 두 목록 모두에 낙관적 반영 후 서버 호출.
+  function applyLikeToLists(
+    reviewId: string,
+    next: { likeCount: number; likedByViewer: boolean },
+  ) {
+    const patch = (list: ReviewItem[]) =>
+      list.map((review) =>
+        review.id === reviewId
+          ? { ...review, likeCount: next.likeCount, likedByViewer: next.likedByViewer }
+          : review,
+      );
+    setDetailReviews(patch);
+    setAllReviews(patch);
+  }
+
+  async function toggleReviewLike(review: ReviewItem) {
+    if (!isSignedIn) {
+      openAuthGate('signIn');
+      return;
+    }
+
+    const wasLiked = review.likedByViewer;
+    const previousCount = review.likeCount;
+    // 낙관적 업데이트: 즉시 UI 반영.
+    applyLikeToLists(review.id, {
+      likeCount: Math.max(0, previousCount + (wasLiked ? -1 : 1)),
+      likedByViewer: !wasLiked,
+    });
+
+    try {
+      const result = wasLiked
+        ? await unlikeReview(review.id)
+        : await likeReview(review.id);
+      // 서버 재집계 카운트로 동기화.
+      applyLikeToLists(review.id, {
+        likeCount: result.likeCount,
+        likedByViewer: result.liked,
+      });
+    } catch (error) {
+      // 실패 시 롤백.
+      applyLikeToLists(review.id, {
+        likeCount: previousCount,
+        likedByViewer: wasLiked,
+      });
+
+      if (error instanceof Error && (error as Error & { code?: string }).code === 'UNAUTHORIZED') {
+        openAuthGate('signIn');
+        return;
+      }
+
+      Alert.alert(
+        '도움돼요 반영 실패',
+        error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+      );
+    }
+  }
+
+  const fetchAllReviews = useCallback(
+    async (eventId: string, sort: ReviewSort) => {
+      setAllReviewsLoading(true);
+      setAllReviewsError('');
+
+      try {
+        const payload = await loadEventReviews(eventId, {
+          limit: REVIEWS_PAGE_SIZE,
+          offset: 0,
+          sort,
+        });
+        setAllReviews(payload.reviews);
+        setAllReviewsHasMore(payload.hasMore);
+      } catch (error) {
+        setAllReviews([]);
+        setAllReviewsHasMore(false);
+        setAllReviewsError(
+          error instanceof Error ? error.message : '후기 목록을 불러오지 못했어요.',
+        );
+      } finally {
+        setAllReviewsLoading(false);
+      }
+    },
+    [],
+  );
+
+  async function loadMoreReviews() {
+    const eventId = selectedEvent?.id;
+
+    if (!eventId || allReviewsLoading || allReviewsLoadingMore || !allReviewsHasMore) {
+      return;
+    }
+
+    setAllReviewsLoadingMore(true);
+
+    try {
+      const payload = await loadEventReviews(eventId, {
+        limit: REVIEWS_PAGE_SIZE,
+        offset: allReviews.length,
+        sort: allReviewsSort,
+      });
+      setAllReviews((current) => {
+        const seen = new Set(current.map((review) => review.id));
+        const merged = [...current];
+        for (const review of payload.reviews) {
+          if (!seen.has(review.id)) {
+            merged.push(review);
+          }
+        }
+        return merged;
+      });
+      setAllReviewsHasMore(payload.hasMore);
+    } catch (error) {
+      Alert.alert(
+        '후기 불러오기 실패',
+        error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+      );
+    } finally {
+      setAllReviewsLoadingMore(false);
+    }
+  }
+
+  function openAllReviews() {
+    if (!selectedEvent) {
+      return;
+    }
+    setAllReviewsSort('recent');
+    setAllReviews([]);
+    setAllReviewsHasMore(false);
+    setOverlay('reviews');
+    fetchAllReviews(selectedEvent.id, 'recent');
+  }
+
+  function changeReviewsSort(sort: ReviewSort) {
+    if (sort === allReviewsSort || !selectedEvent) {
+      return;
+    }
+    setAllReviewsSort(sort);
+    setAllReviews([]);
+    setAllReviewsHasMore(false);
+    fetchAllReviews(selectedEvent.id, sort);
   }
 
   async function handleKakaoSignIn() {
@@ -1180,6 +1366,8 @@ export default function App() {
             }}
             onReservation={openReservation}
             onRetryReviews={() => fetchDetailReviews(selectedEvent.id)}
+            onSeeAllReviews={openAllReviews}
+            onToggleReviewLike={toggleReviewLike}
             onToggleSaved={toggleSaved}
             onWriteReview={() => openReviewForEvent(selectedEvent)}
             recentReviews={detailReviews}
@@ -1411,6 +1599,61 @@ export default function App() {
           />
         ) : null}
 
+        {overlay === 'reviews' && selectedEvent ? (
+          <ReviewsScreen
+            error={allReviewsError}
+            eventTitle={selectedEvent.title}
+            hasMore={allReviewsHasMore}
+            loading={allReviewsLoading}
+            loadingMore={allReviewsLoadingMore}
+            onBack={() => setOverlay(null)}
+            onLoadMore={loadMoreReviews}
+            onReportReview={(reviewId) => {
+              if (!isSignedIn) {
+                openAuthGate('signIn');
+              } else {
+                Alert.alert('후기 신고', '신고하시겠어요?', [
+                  { style: 'cancel', text: '취소' },
+                  {
+                    style: 'destructive',
+                    text: '신고',
+                    onPress: () => {
+                      reportReview({ reason: '부적절한 후기', reviewId })
+                        .then((payload) => {
+                          if (payload.hideTriggered) {
+                            Alert.alert(
+                              '신고 접수 완료',
+                              '커뮤니티 신고 누적으로 해당 후기가 숨김 처리됐어요.',
+                            );
+                            if (selectedEvent) {
+                              fetchAllReviews(selectedEvent.id, allReviewsSort);
+                              fetchDetailReviews(selectedEvent.id);
+                            }
+                            return;
+                          }
+                          Alert.alert('신고 접수 완료', '검토를 위해 신고를 접수했어요.');
+                        })
+                        .catch((reportError: unknown) => {
+                          Alert.alert(
+                            '신고 실패',
+                            reportError instanceof Error
+                              ? reportError.message
+                              : '신고를 처리하지 못했어요.',
+                          );
+                        });
+                    },
+                  },
+                ]);
+              }
+            }}
+            onRetry={() => fetchAllReviews(selectedEvent.id, allReviewsSort)}
+            onSortChange={changeReviewsSort}
+            onToggleReviewLike={toggleReviewLike}
+            reviews={allReviews}
+            sort={allReviewsSort}
+          />
+        ) : null}
+
         {showReviewSuccessModal && reviewSuccessPayload ? (
           <ReviewSuccessModal
             payload={reviewSuccessPayload}
@@ -1424,6 +1667,9 @@ export default function App() {
     </SafeAreaOverlay>
   );
 }
+
+// DSN이 설정된 경우에만 Sentry.wrap으로 감싼다(없으면 원본 컴포넌트 그대로 = no-op).
+export default SENTRY_DSN ? Sentry.wrap(App) : App;
 
 function BootScreen() {
   return (
@@ -1554,11 +1800,38 @@ function FeedScreen({
     [events, interests],
   );
 
-  return (
-    <ScrollView
-      contentContainerStyle={[styles.tabContent, { paddingBottom: scrollPaddingBottom }]}
-      showsVerticalScrollIndicator={false}
-    >
+  // 점진 렌더용 표시 개수. 필터/카테고리/위치가 바뀌면 처음으로 되돌린다.
+  const [visibleCount, setVisibleCount] = useState(FEED_PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(FEED_PAGE_SIZE);
+  }, [events]);
+
+  const visibleEvents = useMemo(
+    () => events.slice(0, visibleCount),
+    [events, visibleCount],
+  );
+
+  const handleEndReached = useCallback(() => {
+    setVisibleCount((current) =>
+      current >= events.length ? current : Math.min(current + FEED_PAGE_SIZE, events.length),
+    );
+  }, [events.length]);
+
+  const renderNearby = useCallback(
+    ({ item }: ListRenderItemInfo<CultureEvent & { distanceKm?: number }>) => (
+      <NearbyCard
+        event={item}
+        isSaved={savedIds.includes(item.id)}
+        onPress={() => onEventPress(item)}
+        onToggleSaved={onToggleSaved}
+      />
+    ),
+    [onEventPress, onToggleSaved, savedIds],
+  );
+
+  const listHeader = (
+    <>
       <View style={styles.feedHeader}>
         <View style={styles.headerTopRow}>
           <BrandTitle />
@@ -1608,10 +1881,7 @@ function FeedScreen({
         ) : null}
       </View>
 
-      <CategoryRow
-        selected={selectedCategory}
-        onSelect={onCategoryChange}
-      />
+      <CategoryRow selected={selectedCategory} onSelect={onCategoryChange} />
 
       {selectedCategory === '전체' && interestEvents.length > 0 ? (
         <>
@@ -1630,11 +1900,7 @@ function FeedScreen({
         </>
       ) : null}
 
-      <SectionHeader
-        actionLabel="필터"
-        onAction={onFilterPress}
-        title="오늘의 추천"
-      />
+      <SectionHeader actionLabel="필터" onAction={onFilterPress} title="오늘의 추천" />
       <FeaturedCard
         event={featured}
         isSaved={savedIds.includes(featured.id)}
@@ -1658,27 +1924,38 @@ function FeedScreen({
         onAction={onFilterPress}
         title="가까운 무료 공간"
       />
-      {events.length > 0 ? (
-        <View style={styles.nearbyGrid}>
-          {events.slice(0, 9).map((event) => (
-            <NearbyCard
-              event={event}
-              isSaved={savedIds.includes(event.id)}
-              key={event.id}
-              onPress={() => onEventPress(event)}
-              onToggleSaved={onToggleSaved}
-            />
-          ))}
-        </View>
-      ) : (
+    </>
+  );
+
+  return (
+    <FlatList
+      ListEmptyComponent={
         <EmptyState
           ctaLabel="필터 초기화"
           description="조건을 조금 넓히면 더 많은 무료 문화생활을 찾을 수 있어요."
           onCta={onFilterPress}
           title="조건에 맞는 콘텐츠가 없어요"
         />
-      )}
-    </ScrollView>
+      }
+      ListFooterComponent={
+        visibleCount < events.length ? (
+          <View style={styles.feedFooter}>
+            <ActivityIndicator color={colors.accent} size="small" />
+          </View>
+        ) : null
+      }
+      ListHeaderComponent={listHeader}
+      columnWrapperStyle={styles.feedColumnWrapper}
+      contentContainerStyle={[styles.tabContent, { paddingBottom: scrollPaddingBottom }]}
+      data={visibleEvents}
+      keyExtractor={(item) => item.id}
+      numColumns={3}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      removeClippedSubviews={Platform.OS === 'android'}
+      renderItem={renderNearby}
+      showsVerticalScrollIndicator={false}
+    />
   );
 }
 
@@ -1690,6 +1967,8 @@ function DetailScreen({
   onReportReview,
   onReservation,
   onRetryReviews,
+  onSeeAllReviews,
+  onToggleReviewLike,
   onToggleSaved,
   onWriteReview,
   recentReviews,
@@ -1703,6 +1982,8 @@ function DetailScreen({
   onReportReview: (reviewId: string) => void;
   onReservation: (event: CultureEvent) => void;
   onRetryReviews: () => void;
+  onSeeAllReviews: () => void;
+  onToggleReviewLike: (review: ReviewItem) => void;
   onToggleSaved: (eventId: string) => void;
   onWriteReview: () => void;
   recentReviews: ReviewItem[];
@@ -1801,34 +2082,27 @@ function DetailScreen({
                 </Text>
               </Pressable>
             ) : null}
-            {!reviewsLoading && !reviewsError && recentReviews.length > 0
-              ? recentReviews.slice(0, 3).map((review) => (
-                  <View key={review.id} style={styles.detailReviewItem}>
-                    <View style={styles.detailReviewHeader}>
-                      <Text style={styles.detailReviewAuthor}>
-                        사용자 후기
-                      </Text>
-                      <View style={styles.detailReviewActions}>
-                        <Text style={styles.detailReviewRating}>★ {review.rating.toFixed(1)}</Text>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={() => onReportReview(review.id)}
-                          style={styles.outlineTinyButton}
-                        >
-                          <Text style={styles.outlineTinyButtonText}>신고</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                    {review.comment ? (
-                      <Text style={styles.detailReviewComment}>{review.comment}</Text>
-                    ) : (
-                      <Text style={styles.detailReviewMetaText}>
-                        코멘트 없이 별점만 등록된 후기예요.
-                      </Text>
-                    )}
-                  </View>
-                ))
-              : null}
+            {!reviewsLoading && !reviewsError && recentReviews.length > 0 ? (
+              <>
+                {recentReviews.slice(0, 3).map((review) => (
+                  <ReviewCard
+                    key={review.id}
+                    onReport={() => onReportReview(review.id)}
+                    onToggleLike={() => onToggleReviewLike(review)}
+                    review={review}
+                  />
+                ))}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onSeeAllReviews}
+                  style={styles.reviewSeeAllButton}
+                >
+                  <Text style={styles.reviewSeeAllText}>
+                    후기 전체보기 ({event.reviewCount.toLocaleString()})
+                  </Text>
+                </Pressable>
+              </>
+            ) : null}
           </View>
           <View style={styles.hashRow}>
             {event.hashtags.map((tag) => (
@@ -1873,6 +2147,190 @@ function DetailScreen({
           <Text style={styles.reserveActionText}>예약하기</Text>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+function ReviewCard({
+  onReport,
+  onToggleLike,
+  review,
+}: {
+  onReport: () => void;
+  onToggleLike: () => void;
+  review: ReviewItem;
+}) {
+  const liked = review.likedByViewer;
+
+  return (
+    <View style={styles.detailReviewItem}>
+      <View style={styles.detailReviewHeader}>
+        <Text style={styles.detailReviewAuthor}>사용자 후기</Text>
+        <View style={styles.detailReviewActions}>
+          <Text style={styles.detailReviewRating}>★ {review.rating.toFixed(1)}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onReport}
+            style={styles.outlineTinyButton}
+          >
+            <Text style={styles.outlineTinyButtonText}>신고</Text>
+          </Pressable>
+        </View>
+      </View>
+      {review.comment ? (
+        <Text style={styles.detailReviewComment}>{review.comment}</Text>
+      ) : (
+        <Text style={styles.detailReviewMetaText}>
+          코멘트 없이 별점만 등록된 후기예요.
+        </Text>
+      )}
+      <Pressable
+        accessibilityLabel={liked ? '도움돼요 취소' : '도움돼요'}
+        accessibilityRole="button"
+        accessibilityState={{ selected: liked }}
+        hitSlop={6}
+        onPress={onToggleLike}
+        style={[styles.reviewLikeButton, liked && styles.reviewLikeButtonActive]}
+      >
+        <Text style={[styles.reviewLikeIcon, liked && styles.reviewLikeIconActive]}>
+          {liked ? '♥' : '♡'}
+        </Text>
+        <Text style={[styles.reviewLikeText, liked && styles.reviewLikeTextActive]}>
+          도움돼요 {review.likeCount.toLocaleString()}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ReviewsScreen({
+  error,
+  eventTitle,
+  hasMore,
+  loading,
+  loadingMore,
+  onBack,
+  onLoadMore,
+  onReportReview,
+  onRetry,
+  onSortChange,
+  onToggleReviewLike,
+  reviews,
+  sort,
+}: {
+  error: string;
+  eventTitle: string;
+  hasMore: boolean;
+  loading: boolean;
+  loadingMore: boolean;
+  onBack: () => void;
+  onLoadMore: () => void;
+  onReportReview: (reviewId: string) => void;
+  onRetry: () => void;
+  onSortChange: (sort: ReviewSort) => void;
+  onToggleReviewLike: (review: ReviewItem) => void;
+  reviews: ReviewItem[];
+  sort: ReviewSort;
+}) {
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<ReviewItem>) => (
+      <ReviewCard
+        onReport={() => onReportReview(item.id)}
+        onToggleLike={() => onToggleReviewLike(item)}
+        review={item}
+      />
+    ),
+    [onReportReview, onToggleReviewLike],
+  );
+
+  return (
+    <View style={styles.overlay}>
+      <OverlaySafeArea>
+        <TopBar onBack={onBack} showClose title="후기 전체보기" />
+        <View style={styles.reviewsSortRow}>
+          {REVIEW_SORT_TABS.map((tab) => {
+            const active = tab.key === sort;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                key={tab.key}
+                onPress={() => onSortChange(tab.key)}
+                style={[styles.reviewsSortChip, active && styles.reviewsSortChipActive]}
+              >
+                <Text
+                  style={[
+                    styles.reviewsSortChipText,
+                    active && styles.reviewsSortChipTextActive,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {loading ? (
+          <View style={styles.reviewsCenter}>
+            <ActivityIndicator color={colors.accent} size="small" />
+            <Text style={styles.detailReviewMetaText}>후기를 불러오는 중이에요.</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.reviewsCenter}>
+            <Text style={styles.detailReviewMetaText}>{error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onRetry}
+              style={styles.outlineSmallButton}
+            >
+              <Text style={styles.outlineSmallButtonText}>다시 시도</Text>
+            </Pressable>
+          </View>
+        ) : reviews.length === 0 ? (
+          <View style={styles.reviewsCenter}>
+            <Text style={styles.detailReviewMetaText}>
+              아직 등록된 후기가 없어요.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={styles.reviewsFooter}>
+                  <ActivityIndicator color={colors.accent} size="small" />
+                </View>
+              ) : hasMore ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onLoadMore}
+                  style={styles.reviewsMoreButton}
+                >
+                  <Text style={styles.reviewsMoreButtonText}>더보기</Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.reviewsEndText}>마지막 후기예요.</Text>
+              )
+            }
+            ListHeaderComponent={
+              <Text numberOfLines={2} style={styles.reviewsEventTitle}>
+                {eventTitle}
+              </Text>
+            }
+            contentContainerStyle={styles.reviewsListContent}
+            data={reviews}
+            keyExtractor={(item) => item.id}
+            onEndReached={() => {
+              if (hasMore && !loadingMore) {
+                onLoadMore();
+              }
+            }}
+            onEndReachedThreshold={0.4}
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </OverlaySafeArea>
     </View>
   );
 }
@@ -5317,6 +5775,128 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 10,
     fontWeight: '800',
+  },
+  feedColumnWrapper: {
+    gap: 12,
+    marginBottom: 12,
+  },
+  feedFooter: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  reviewSeeAllButton: {
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+    paddingVertical: 12,
+  },
+  reviewSeeAllText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  reviewLikeButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  reviewLikeButtonActive: {
+    backgroundColor: 'rgba(236,72,153,0.14)',
+    borderColor: colors.pink,
+  },
+  reviewLikeIcon: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  reviewLikeIconActive: {
+    color: colors.pink,
+  },
+  reviewLikeText: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  reviewLikeTextActive: {
+    color: colors.pink,
+  },
+  reviewsSortRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+  },
+  reviewsSortChip: {
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  reviewsSortChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  reviewsSortChipText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  reviewsSortChipTextActive: {
+    color: colors.onAccent,
+  },
+  reviewsCenter: {
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
+  reviewsListContent: {
+    gap: 10,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  reviewsEventTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  reviewsFooter: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  reviewsMoreButton: {
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 6,
+    paddingVertical: 12,
+  },
+  reviewsMoreButtonText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  reviewsEndText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    paddingVertical: 16,
+    textAlign: 'center',
   },
   bottomActions: {
     backgroundColor: colors.bg,

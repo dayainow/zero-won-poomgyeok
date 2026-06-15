@@ -12,6 +12,7 @@ const plugins = [
         '프로필 사진으로 사용할 이미지를 선택하기 위해 사진 접근 권한이 필요합니다.',
     },
   ],
+  '@sentry/react-native',
 ];
 
 if (admobEnabled) {

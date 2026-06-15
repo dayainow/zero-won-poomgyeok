@@ -6,8 +6,10 @@ import {
   createReviewForViewer,
   createReviewReportForViewer,
   getMyReviews,
+  likeReviewForViewer,
   parseJsonBody,
   requireViewer,
+  unlikeReviewForViewer,
 } from '../_lib/userSystem';
 
 type CreateReviewBody = {
@@ -19,6 +21,10 @@ type CreateReviewBody = {
 
 type CreateReportBody = {
   reason?: string;
+  reviewId?: string;
+};
+
+type ReviewLikeBody = {
   reviewId?: string;
 };
 
@@ -79,6 +85,25 @@ export default async function handler(
         return;
       }
 
+      if (resource === 'likes') {
+        enforceRateLimit({
+          key: `review-like:user:${viewer.user.id}`,
+          limit: 60,
+          windowMs: 60_000,
+        });
+        enforceRateLimit({
+          key: `review-like:ip:${ip}`,
+          limit: 120,
+          windowMs: 60_000,
+        });
+        const body = parseJsonBody<ReviewLikeBody>(request.body ?? {});
+        const queryAt = Date.now();
+        const result = await likeReviewForViewer(viewer, body.reviewId ?? '');
+        obs.mark('db_like_review', queryAt);
+        response.status(201).json(result);
+        return;
+      }
+
       enforceRateLimit({
         key: `my-reviews:post-user:${viewer.user.id}`,
         limit: 8,
@@ -102,8 +127,39 @@ export default async function handler(
       return;
     }
 
-    response.setHeader('Allow', 'GET, POST');
-    response.status(405).json({ message: 'GET 또는 POST만 허용됩니다.' });
+    if (request.method === 'DELETE') {
+      const ip = String(request.headers['x-forwarded-for'] ?? request.socket.remoteAddress ?? 'unknown')
+        .split(',')[0]
+        .trim();
+      const resource =
+        typeof request.query.resource === 'string' ? request.query.resource : '';
+
+      if (resource === 'likes') {
+        enforceRateLimit({
+          key: `review-unlike:user:${viewer.user.id}`,
+          limit: 60,
+          windowMs: 60_000,
+        });
+        enforceRateLimit({
+          key: `review-unlike:ip:${ip}`,
+          limit: 120,
+          windowMs: 60_000,
+        });
+        const body = parseJsonBody<ReviewLikeBody>(request.body ?? {});
+        const queryAt = Date.now();
+        const result = await unlikeReviewForViewer(viewer, body.reviewId ?? '');
+        obs.mark('db_unlike_review', queryAt);
+        response.status(200).json(result);
+        return;
+      }
+
+      response.setHeader('Allow', 'GET, POST, DELETE');
+      response.status(405).json({ message: 'GET, POST 또는 DELETE만 허용됩니다.' });
+      return;
+    }
+
+    response.setHeader('Allow', 'GET, POST, DELETE');
+    response.status(405).json({ message: 'GET, POST 또는 DELETE만 허용됩니다.' });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : '후기 요청을 처리하지 못했습니다.';
@@ -113,12 +169,17 @@ export default async function handler(
       response.setHeader('Retry-After', String(retryAfterSec));
     }
     response.status(status).json({ message });
-    obs.log(status >= 500 ? 'error' : 'warn', 'my_reviews_failed', {
-      elapsedMs: Date.now() - startedAt,
-      message,
-      method: request.method,
-      status,
-    });
+    obs.log(
+      status >= 500 ? 'error' : 'warn',
+      'my_reviews_failed',
+      {
+        elapsedMs: Date.now() - startedAt,
+        message,
+        method: request.method,
+        status,
+      },
+      error,
+    );
   } finally {
     obs.mark('handler', startedAt);
     obs.finalize();

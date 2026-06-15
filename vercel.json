@@ -35,6 +35,10 @@
     {
       "source": "/api/me/review-reports",
       "destination": "/api/me/reviews?resource=reports"
+    },
+    {
+      "source": "/api/me/review-likes",
+      "destination": "/api/me/reviews?resource=likes"
     }
   ],
   "crons": [

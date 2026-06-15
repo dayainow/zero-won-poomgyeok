@@ -76,14 +76,38 @@ type ReviewInput = {
   comment: string;
 };
 
+export type ReviewSort = 'recent' | 'rating' | 'likes';
+
 type ReviewQueryOptions = {
   limit?: number;
+};
+
+type EventReviewQueryOptions = {
+  limit?: number;
+  offset?: number;
+  sort?: ReviewSort;
+  viewerUserId?: string | null;
+};
+
+type PublicReview = {
+  comment: string;
+  createdAt: string;
+  eventId: string;
+  eventTitle: string;
+  id: string;
+  likeCount: number;
+  likedByViewer: boolean;
+  rating: number;
+  status: 'visible' | 'hidden';
+  updatedAt: string;
 };
 
 const REVIEW_COMMENT_MAX_LENGTH = 300;
 const REVIEW_DUPLICATE_WINDOW_MS = 5 * 60 * 1000;
 const REVIEW_DEFAULT_LIMIT = 20;
 const REVIEW_MAX_LIMIT = 50;
+// 'likes' 정렬은 집계 정렬이라 후보군을 모아 메모리에서 정렬한다(현 규모 무방).
+const REVIEW_LIKES_SORT_SCAN_CAP = 500;
 const REPORT_HIDE_THRESHOLD = 3;
 
 export type ViewerContext = {
@@ -140,6 +164,39 @@ export async function requireViewer(
     supabase,
     user,
   };
+}
+
+/**
+ * 공개 엔드포인트에서 Authorization Bearer가 있으면 viewer userId를 추출한다.
+ * 토큰이 없거나 검증 실패하면 null(비로그인 취급) — 절대 throw하지 않는다.
+ */
+export async function resolveOptionalViewerUserId(
+  request: VercelRequest,
+): Promise<string | null> {
+  if (!isUserSystemConfigured()) {
+    return null;
+  }
+
+  const token = getBearerToken(request);
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const supabase = createSupabaseForToken(token);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return null;
+    }
+
+    return user.id;
+  } catch {
+    return null;
+  }
 }
 
 export async function getViewerPayload({ profile, supabase }: ViewerContext) {
@@ -367,12 +424,19 @@ export async function getMyReviews(
     userId: user.id,
   });
 
-  return (data ?? []).map(toPublicReview);
+  // 내 후기 목록도 좋아요 카운트와, 내가 누른 좋아요 여부를 채운다.
+  return attachLikeMeta(supabase, data ?? [], user.id);
 }
 
-export async function getEventReviews(eventId: string, options: ReviewQueryOptions = {}) {
+export async function getEventReviews(
+  eventId: string,
+  options: EventReviewQueryOptions = {},
+) {
   const normalizedEventId = eventId.trim();
   const limit = normalizeLimit(options.limit);
+  const offset = normalizeOffset(options.offset);
+  const sort = normalizeSort(options.sort);
+  const viewerUserId = options.viewerUserId ?? null;
 
   if (!normalizedEventId) {
     throw new Error('eventId is required.');
@@ -380,13 +444,56 @@ export async function getEventReviews(eventId: string, options: ReviewQueryOptio
 
   const supabase = createSupabaseForToken(null);
   const queryStartedAt = Date.now();
-  const { data, error } = await supabase
+
+  // recent / rating은 DB에서 직접 정렬 + offset 페이지네이션.
+  // likes는 집계 정렬이라 후보군을 모아 메모리에서 카운트 정렬 후 슬라이스.
+  if (sort === 'likes') {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('event_id', normalizedEventId)
+      .eq('status', 'visible')
+      .order('created_at', { ascending: false })
+      .limit(REVIEW_LIKES_SORT_SCAN_CAP)
+      .returns<DatabaseReview[]>();
+
+    if (error) {
+      throw error;
+    }
+    warnIfSlowQuery('get_event_reviews', queryStartedAt, {
+      eventId: normalizedEventId,
+      limit,
+      offset,
+      sort,
+    });
+
+    const candidates = data ?? [];
+    const withMeta = await attachLikeMeta(supabase, candidates, viewerUserId);
+    withMeta.sort((a, b) => {
+      if (b.likeCount !== a.likeCount) {
+        return b.likeCount - a.likeCount;
+      }
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+    return withMeta.slice(offset, offset + limit);
+  }
+
+  let query = supabase
     .from('reviews')
     .select('*')
     .eq('event_id', normalizedEventId)
-    .eq('status', 'visible')
-    .order('created_at', { ascending: false })
-    .limit(limit)
+    .eq('status', 'visible');
+
+  if (sort === 'rating') {
+    query = query
+      .order('rating', { ascending: false })
+      .order('created_at', { ascending: false });
+  } else {
+    query = query.order('created_at', { ascending: false });
+  }
+
+  const { data, error } = await query
+    .range(offset, offset + limit - 1)
     .returns<DatabaseReview[]>();
 
   if (error) {
@@ -395,9 +502,60 @@ export async function getEventReviews(eventId: string, options: ReviewQueryOptio
   warnIfSlowQuery('get_event_reviews', queryStartedAt, {
     eventId: normalizedEventId,
     limit,
+    offset,
+    sort,
   });
 
-  return (data ?? []).map(toPublicReview);
+  return attachLikeMeta(supabase, data ?? [], viewerUserId);
+}
+
+export async function likeReviewForViewer(
+  { supabase, user }: ViewerContext,
+  reviewId: string,
+) {
+  const normalizedReviewId = String(reviewId ?? '').trim();
+  if (!normalizedReviewId) {
+    throw new Error('reviewId is required.');
+  }
+
+  const insertResult = await supabase.from('review_likes').insert({
+    review_id: normalizedReviewId,
+    user_id: user.id,
+  });
+
+  // 23505 = unique 위반 → 이미 좋아요한 상태이므로 idempotent하게 통과.
+  if (insertResult.error && String(insertResult.error.code) !== '23505') {
+    if (String(insertResult.error.code) === '23503') {
+      throw new Error('해당 후기를 찾을 수 없습니다.');
+    }
+    throw insertResult.error;
+  }
+
+  const likeCount = await recountReviewLikes(supabase, normalizedReviewId);
+  return { liked: true, likeCount };
+}
+
+export async function unlikeReviewForViewer(
+  { supabase, user }: ViewerContext,
+  reviewId: string,
+) {
+  const normalizedReviewId = String(reviewId ?? '').trim();
+  if (!normalizedReviewId) {
+    throw new Error('reviewId is required.');
+  }
+
+  const deleteResult = await supabase
+    .from('review_likes')
+    .delete()
+    .eq('review_id', normalizedReviewId)
+    .eq('user_id', user.id);
+
+  if (deleteResult.error) {
+    throw deleteResult.error;
+  }
+
+  const likeCount = await recountReviewLikes(supabase, normalizedReviewId);
+  return { liked: false, likeCount };
 }
 
 export async function createReviewReportForViewer(
@@ -656,17 +814,107 @@ function toPublicSavedEvent(savedEvent: DatabaseSavedEvent) {
   };
 }
 
-function toPublicReview(review: DatabaseReview) {
+function toPublicReview(
+  review: DatabaseReview,
+  likeCount = 0,
+  likedByViewer = false,
+): PublicReview {
   return {
     comment: review.comment,
     createdAt: review.created_at,
     eventId: review.event_id,
     eventTitle: review.event_title,
     id: review.id,
+    likeCount,
+    likedByViewer,
     rating: review.rating,
     status: review.status,
     updatedAt: review.updated_at,
   };
+}
+
+/**
+ * 주어진 review id 집합에 대해 좋아요 카운트(전체)와 viewer 좋아요 여부를 한 번씩 조회한다.
+ * - 카운트: review_likes를 review_id IN (ids)로 조회 후 메모리 집계.
+ * - viewer 좋아요: viewerUserId가 있을 때만 해당 user의 좋아요 review_id 집합 조회.
+ */
+async function collectReviewLikeMeta(
+  supabase: SupabaseClient,
+  reviewIds: string[],
+  viewerUserId?: string | null,
+): Promise<{
+  counts: Map<string, number>;
+  likedByViewer: Set<string>;
+}> {
+  const counts = new Map<string, number>();
+  const likedByViewer = new Set<string>();
+
+  if (reviewIds.length === 0) {
+    return { counts, likedByViewer };
+  }
+
+  const countResult = await supabase
+    .from('review_likes')
+    .select('review_id')
+    .in('review_id', reviewIds)
+    .returns<{ review_id: string }[]>();
+
+  if (countResult.error) {
+    throw countResult.error;
+  }
+
+  for (const row of countResult.data ?? []) {
+    counts.set(row.review_id, (counts.get(row.review_id) ?? 0) + 1);
+  }
+
+  if (viewerUserId) {
+    const viewerResult = await supabase
+      .from('review_likes')
+      .select('review_id')
+      .eq('user_id', viewerUserId)
+      .in('review_id', reviewIds)
+      .returns<{ review_id: string }[]>();
+
+    if (viewerResult.error) {
+      throw viewerResult.error;
+    }
+
+    for (const row of viewerResult.data ?? []) {
+      likedByViewer.add(row.review_id);
+    }
+  }
+
+  return { counts, likedByViewer };
+}
+
+async function attachLikeMeta(
+  supabase: SupabaseClient,
+  reviews: DatabaseReview[],
+  viewerUserId?: string | null,
+): Promise<PublicReview[]> {
+  const ids = reviews.map((review) => review.id);
+  const { counts, likedByViewer } = await collectReviewLikeMeta(
+    supabase,
+    ids,
+    viewerUserId,
+  );
+
+  return reviews.map((review) =>
+    toPublicReview(review, counts.get(review.id) ?? 0, likedByViewer.has(review.id)),
+  );
+}
+
+async function recountReviewLikes(supabase: SupabaseClient, reviewId: string) {
+  const { count, error } = await supabase
+    .from('review_likes')
+    .select('*', { count: 'exact', head: true })
+    .eq('review_id', reviewId);
+
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
 }
 
 function normalizeReviewInput(input: ReviewInput) {
@@ -727,6 +975,22 @@ async function enforceDuplicateReviewWindow(
   if (Date.now() - createdAt < windowMs) {
     throw new Error('같은 행사에 대한 후기는 잠시 후 다시 작성해 주세요.');
   }
+}
+
+function normalizeOffset(input: number | undefined) {
+  if (!Number.isFinite(input)) {
+    return 0;
+  }
+
+  const value = Math.trunc(input as number);
+  return value < 0 ? 0 : value;
+}
+
+function normalizeSort(input: ReviewSort | undefined): ReviewSort {
+  if (input === 'rating' || input === 'likes') {
+    return input;
+  }
+  return 'recent';
 }
 
 function normalizeLimit(input: number | undefined) {

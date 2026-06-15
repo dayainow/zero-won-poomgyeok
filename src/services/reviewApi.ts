@@ -1,5 +1,7 @@
 import { getAuthAccessToken } from './authClient';
 
+export type ReviewSort = 'recent' | 'rating' | 'likes';
+
 export type ReviewItem = {
   eventTitle: string;
   id: string;
@@ -9,6 +11,8 @@ export type ReviewItem = {
   status?: 'visible' | 'hidden';
   createdAt: string;
   updatedAt: string;
+  likeCount: number;
+  likedByViewer: boolean;
 };
 
 type ApiError = {
@@ -38,11 +42,52 @@ export async function loadMyReviews() {
   return requestWithAuth<{ reviews: ReviewItem[] }>('/api/me/reviews');
 }
 
-export async function loadEventReviews(eventId: string, limit = 3) {
+export async function loadEventReviews(
+  eventId: string,
+  options: { limit?: number; offset?: number; sort?: ReviewSort } = {},
+) {
+  const { limit = 3, offset, sort } = options;
   const query = new URLSearchParams({ limit: String(limit) });
-  return requestWithoutAuth<{ reviews: ReviewItem[] }>(
-    `/api/events/${encodeURIComponent(eventId)}/reviews?${query.toString()}`,
-  );
+
+  if (typeof offset === 'number') {
+    query.set('offset', String(offset));
+  }
+
+  if (sort) {
+    query.set('sort', sort);
+  }
+
+  // Bearer 토큰이 있으면 likedByViewer가 채워지고, 없으면 비로그인으로 false 처리된다.
+  const token = await getAuthAccessToken();
+  const path = `/api/events/${encodeURIComponent(eventId)}/reviews?${query.toString()}`;
+
+  if (token) {
+    return request<{ reviews: ReviewItem[]; hasMore: boolean }>(path, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  return requestWithoutAuth<{ reviews: ReviewItem[]; hasMore: boolean }>(path);
+}
+
+export async function likeReview(reviewId: string) {
+  return requestWithAuth<{ liked: true; likeCount: number }>('/api/me/review-likes', {
+    body: JSON.stringify({ reviewId }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+}
+
+export async function unlikeReview(reviewId: string) {
+  return requestWithAuth<{ liked: false; likeCount: number }>('/api/me/review-likes', {
+    body: JSON.stringify({ reviewId }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'DELETE',
+  });
 }
 
 export async function reportReview(input: { reason: string; reviewId: string }) {
