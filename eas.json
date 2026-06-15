@@ -18,7 +18,8 @@
         "EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID": "ca-app-pub-4061122570976810/9005572723",
         "EXPO_PUBLIC_APP_URL": "https://zero-won-poomgyeok.vercel.app",
         "EXPO_PUBLIC_EVENTS_API_URL": "https://zero-won-poomgyeok.vercel.app/api/events",
-        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://zero-won-poomgyeok.vercel.app/privacy-policy.html"
+        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://zero-won-poomgyeok.vercel.app/privacy-policy.html",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://6132a4f652ec9928a755068df4d0f9df@o4511567512338432.ingest.us.sentry.io/4511567544909824"
       }
     },
     "production": {
@@ -31,7 +32,8 @@
         "EXPO_PUBLIC_ADMOB_ANDROID_BANNER_UNIT_ID": "ca-app-pub-4061122570976810/9005572723",
         "EXPO_PUBLIC_APP_URL": "https://zero-won-poomgyeok.vercel.app",
         "EXPO_PUBLIC_EVENTS_API_URL": "https://zero-won-poomgyeok.vercel.app/api/events",
-        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://zero-won-poomgyeok.vercel.app/privacy-policy.html"
+        "EXPO_PUBLIC_PRIVACY_POLICY_URL": "https://zero-won-poomgyeok.vercel.app/privacy-policy.html",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://6132a4f652ec9928a755068df4d0f9df@o4511567512338432.ingest.us.sentry.io/4511567544909824"
       }
     }
   },
