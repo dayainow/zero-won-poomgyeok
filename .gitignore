@@ -17,3 +17,5 @@ yarn-error.log*
 *.jks
 *.keystore
 !android/app/debug.keystore
+android/
+_workspace/
