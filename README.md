@@ -2,7 +2,11 @@
 
 GitHub / npm / Expo project slug: `zero-won-poomgyeok`
 
-0원으로 즐길 수 있는 전시, 공연, 도서관 행사, 공공 문화공간을 찾는 Expo MVP입니다.
+0원으로 즐길 수 있는 전시, 공연, 도서관 행사, 공공 문화공간을 찾는 Expo 앱입니다.
+
+현재 출시 중이며, Vercel 배포는 아래 URL에서 확인할 수 있습니다.
+
+- 배포 확인 URL: https://zero-won-poomgyeok.vercel.app
 
 이 폴더는 `today-library`와 같은 기술 스펙으로 시작합니다.
 
@@ -13,6 +17,16 @@ GitHub / npm / Expo project slug: `zero-won-poomgyeok`
 - 검색, 필터, 즐겨찾기 로컬 저장
 - 전화, 홈페이지, 외부 지도 길찾기 연결
 - `.claude` 기반 App Delivery 하네스
+
+## 앱 화면
+
+<p>
+  <img src="assets/1.jpg" width="180" alt="0원의품격 피드 화면">
+  <img src="assets/2.jpg" width="180" alt="0원의품격 지도 화면">
+  <img src="assets/3.jpg" width="180" alt="0원의품격 상세 화면">
+  <img src="assets/4.jpg" width="180" alt="0원의품격 마이 화면">
+  <img src="assets/5.jpg" width="180" alt="0원의품격 빠른 후기 화면">
+</p>
 
 ## 디자인 스펙
 
