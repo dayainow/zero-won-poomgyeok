@@ -860,7 +860,13 @@ async function collectReviewLikeMeta(
     .returns<{ review_id: string }[]>();
 
   if (countResult.error) {
-    throw countResult.error;
+    console.warn(
+      JSON.stringify({
+        event: 'review_like_meta_unavailable',
+        message: countResult.error.message,
+      }),
+    );
+    return { counts, likedByViewer };
   }
 
   for (const row of countResult.data ?? []) {
@@ -876,7 +882,13 @@ async function collectReviewLikeMeta(
       .returns<{ review_id: string }[]>();
 
     if (viewerResult.error) {
-      throw viewerResult.error;
+      console.warn(
+        JSON.stringify({
+          event: 'review_viewer_like_meta_unavailable',
+          message: viewerResult.error.message,
+        }),
+      );
+      return { counts, likedByViewer };
     }
 
     for (const row of viewerResult.data ?? []) {
