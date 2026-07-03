@@ -54,9 +54,9 @@ type DatabaseReview = {
   event_title: string;
   rating: number;
   comment: string;
-  status: 'visible' | 'hidden';
-  hidden_reason: string | null;
-  hidden_at: string | null;
+  status?: 'visible' | 'hidden';
+  hidden_reason?: string | null;
+  hidden_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -448,7 +448,7 @@ export async function getEventReviews(
   // recent / rating은 DB에서 직접 정렬 + offset 페이지네이션.
   // likes는 집계 정렬이라 후보군을 모아 메모리에서 카운트 정렬 후 슬라이스.
   if (sort === 'likes') {
-    const { data, error } = await supabase
+    let result = await supabase
       .from('reviews')
       .select('*')
       .eq('event_id', normalizedEventId)
@@ -457,8 +457,18 @@ export async function getEventReviews(
       .limit(REVIEW_LIKES_SORT_SCAN_CAP)
       .returns<DatabaseReview[]>();
 
-    if (error) {
-      throw error;
+    if (isMissingColumnError(result.error, 'status')) {
+      result = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('event_id', normalizedEventId)
+        .order('created_at', { ascending: false })
+        .limit(REVIEW_LIKES_SORT_SCAN_CAP)
+        .returns<DatabaseReview[]>();
+    }
+
+    if (result.error) {
+      throw result.error;
     }
     warnIfSlowQuery('get_event_reviews', queryStartedAt, {
       eventId: normalizedEventId,
@@ -467,7 +477,7 @@ export async function getEventReviews(
       sort,
     });
 
-    const candidates = data ?? [];
+    const candidates = result.data ?? [];
     const withMeta = await attachLikeMeta(supabase, candidates, viewerUserId);
     withMeta.sort((a, b) => {
       if (b.likeCount !== a.likeCount) {
@@ -492,12 +502,31 @@ export async function getEventReviews(
     query = query.order('created_at', { ascending: false });
   }
 
-  const { data, error } = await query
+  let result = await query
     .range(offset, offset + limit - 1)
     .returns<DatabaseReview[]>();
 
-  if (error) {
-    throw error;
+  if (isMissingColumnError(result.error, 'status')) {
+    let fallbackQuery = supabase
+      .from('reviews')
+      .select('*')
+      .eq('event_id', normalizedEventId);
+
+    if (sort === 'rating') {
+      fallbackQuery = fallbackQuery
+        .order('rating', { ascending: false })
+        .order('created_at', { ascending: false });
+    } else {
+      fallbackQuery = fallbackQuery.order('created_at', { ascending: false });
+    }
+
+    result = await fallbackQuery
+      .range(offset, offset + limit - 1)
+      .returns<DatabaseReview[]>();
+  }
+
+  if (result.error) {
+    throw result.error;
   }
   warnIfSlowQuery('get_event_reviews', queryStartedAt, {
     eventId: normalizedEventId,
@@ -506,7 +535,7 @@ export async function getEventReviews(
     sort,
   });
 
-  return attachLikeMeta(supabase, data ?? [], viewerUserId);
+  return attachLikeMeta(supabase, result.data ?? [], viewerUserId);
 }
 
 export async function likeReviewForViewer(
@@ -828,9 +857,24 @@ function toPublicReview(
     likeCount,
     likedByViewer,
     rating: review.rating,
-    status: review.status,
+    status: review.status ?? 'visible',
     updatedAt: review.updated_at,
   };
+}
+
+function isMissingColumnError(error: unknown, columnName: string) {
+  if (!error) {
+    return false;
+  }
+
+  const { code, message } = error as { code?: string; message?: string };
+  return (
+    code === '42703' ||
+    (typeof message === 'string' &&
+      message.includes('column') &&
+      message.includes(columnName) &&
+      message.includes('does not exist'))
+  );
 }
 
 /**
